@@ -6,13 +6,12 @@ import {
   CalendarOutlined,
   DatabaseOutlined,
   FileTextOutlined,
-  LogoutOutlined,
   ShopOutlined,
   TeamOutlined,
   UserOutlined,
   WalletOutlined
 } from "@ant-design/icons";
-import { Button, Layout, Menu, Typography } from "antd";
+import { Layout, Menu, Tag } from "antd";
 import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 
@@ -78,12 +77,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
 
-  async function logout() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/login");
-    router.refresh();
-  }
-
   const menuItems = groups.map((group) => ({
     key: group.label,
     icon: group.icon,
@@ -120,9 +113,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </Layout.Sider>
       <Layout>
         <Layout.Header className="erp-header">
-          <Button icon={<LogoutOutlined />} onClick={logout}>
-            登出
-          </Button>
+          <Tag color="blue">作品展示版</Tag>
         </Layout.Header>
         <Layout.Content className="erp-content">{children}</Layout.Content>
       </Layout>

@@ -1,13 +1,6 @@
-import { NextResponse } from "next/server";
-import { getSessionUser } from "@/lib/auth";
-
 export async function requireApiUser() {
-  const user = await getSessionUser();
-  if (!user) {
-    return {
-      user: null,
-      response: NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    };
-  }
-  return { user, response: null };
+  return {
+    user: { id: "portfolio-demo", email: "demo@portfolio.local", name: "作品展示" },
+    response: null
+  };
 }
