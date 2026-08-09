@@ -69,10 +69,10 @@ type RegistrationDetailRow = {
   paidAmount: number;
 };
 
-function createBatchRow() {
+function createBatchRow(type = "DIVINATION_SERVICE") {
   return {
     id: undefined,
-    type: "DIVINATION_SERVICE",
+    type,
     name: "",
     price: null,
     cost: 0,
@@ -84,8 +84,8 @@ function createBatchRow() {
   };
 }
 
-function createBatchRows() {
-  return [createBatchRow()];
+function createBatchRows(type = "DIVINATION_SERVICE") {
+  return [createBatchRow(type)];
 }
 
 function createBatchInventoryRow() {
@@ -353,7 +353,9 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
       return total + Number(record.amount ?? 0);
     }, 0);
   }, [config.slug, records]);
-  const [batchRows, setBatchRows] = useState<BatchItemRow[]>(() => createBatchRows());
+  const showEventItemBatch = config.slug === "events";
+  const defaultBatchItemType = showEventItemBatch ? "RITUAL_SERVICE" : "DIVINATION_SERVICE";
+  const [batchRows, setBatchRows] = useState<BatchItemRow[]>(() => createBatchRows(defaultBatchItemType));
   const [batchSubmitting, setBatchSubmitting] = useState(false);
   const [batchInventoryRows, setBatchInventoryRows] = useState<BatchInventoryRow[]>(() =>
     createBatchInventoryRows()
@@ -362,7 +364,6 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
     createRegistrationDetailRows()
   );
   const inventoryItems = (relations.items ?? []).filter((item) => item.requiresInventory !== false);
-  const showEventItemBatch = config.slug === "events";
   const fixedExpenseSystemSalaryRecords = useMemo<DataRecord[]>(() => {
     if (config.slug !== "fixed-expenses") return [];
     const employeesById = new Map((relations.employees ?? []).map((employee) => [employee.id, employee]));
@@ -619,7 +620,7 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
     setForm(initialForm);
     setEditingId(null);
     if (showEventItemBatch) {
-      setBatchRows(createBatchRows());
+      setBatchRows(createBatchRows(defaultBatchItemType));
       await loadItemsRelation();
     }
     await load();
@@ -1439,7 +1440,7 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
                   ))}
                 </div>
                 <Space className="batch-item-actions" style={{ marginTop: 12 }}>
-                  <Button htmlType="button" onClick={() => setBatchRows([...batchRows, createBatchRow()])}>
+                  <Button htmlType="button" onClick={() => setBatchRows([...batchRows, createBatchRow(defaultBatchItemType)])}>
                     ＋新增品項
                   </Button>
                 </Space>
@@ -1460,7 +1461,7 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
                   onClick={() => {
                     setEditingId(null);
                     setForm(initialForm);
-                    if (showEventItemBatch) setBatchRows(createBatchRows());
+                    if (showEventItemBatch) setBatchRows(createBatchRows(defaultBatchItemType));
                   }}
                 >
                   取消編輯
