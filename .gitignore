@@ -1,0 +1,12 @@
+node_modules
+.pnpm-store
+.next
+.next.broken-dev-cache
+.env
+.env.local
+dev.db
+dev.db-journal
+prisma/dev.db
+prisma/dev.db-journal
+*.log
+tsconfig.tsbuildinfo

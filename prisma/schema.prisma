@@ -1,0 +1,325 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum ItemType {
+  DIVINATION_SERVICE
+  RITUAL_SERVICE
+  FENG_SHUI_SERVICE
+  COURSE_SERVICE
+  OIL_DONATION
+  PHYSICAL_PRODUCT
+}
+
+enum PaymentMethod {
+  CASH
+  TRANSFER
+  CARD
+  LINE_PAY
+  OTHER
+}
+
+enum SaleStatus {
+  OPEN
+  CLOSED
+  VOID
+}
+
+enum InventoryMovementType {
+  PURCHASE
+  SALE
+  ADJUSTMENT
+  CONSUMPTION
+}
+
+enum AssetType {
+  FIXED
+  VARIABLE
+}
+
+enum CashEntryType {
+  INCOME
+  EXPENSE
+}
+
+enum ShiftType {
+  ONSITE
+  CHARITY
+}
+
+enum SopStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum StepStatus {
+  TODO
+  DOING
+  DONE
+}
+
+enum RegistrationStatus {
+  REGISTERED
+  PAID
+  CANCELLED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Item {
+  id                 String              @id @default(cuid())
+  type               ItemType
+  name               String
+  price              Decimal             @default(0)
+  cost               Decimal             @default(0)
+  requiresInventory  Boolean             @default(false)
+  active             Boolean             @default(true)
+  notes              String?
+  eventId            String?
+  servicePersonId    String?
+  event              Event?              @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  servicePerson      Employee?           @relation("ItemServicePerson", fields: [servicePersonId], references: [id])
+  saleLines          SaleLine[]
+  eventRegistrations EventRegistration[]
+  inventoryMovements InventoryMovement[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  @@index([eventId])
+}
+
+model Sale {
+  id              String        @id @default(cuid())
+  soldAt          DateTime      @default(now())
+  customerName    String?
+  salesPersonId   String?
+  servicePersonId String?
+  paymentMethod   PaymentMethod @default(CASH)
+  status          SaleStatus    @default(CLOSED)
+  subtotal        Decimal       @default(0)
+  discount        Decimal       @default(0)
+  total           Decimal       @default(0)
+  notes           String?
+  salesPerson     Employee?     @relation("SalesPersonSales", fields: [salesPersonId], references: [id])
+  servicePerson   Employee?     @relation("ServicePersonSales", fields: [servicePersonId], references: [id])
+  lines           SaleLine[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model SaleLine {
+  id        String  @id @default(cuid())
+  saleId    String
+  itemId    String
+  quantity  Int     @default(1)
+  unitPrice Decimal @default(0)
+  lineTotal Decimal @default(0)
+  sale      Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  item      Item    @relation(fields: [itemId], references: [id])
+}
+
+model InventoryMovement {
+  id        String                @id @default(cuid())
+  itemId    String
+  type      InventoryMovementType
+  quantity  Int
+  reason    String?
+  movedAt   DateTime              @default(now())
+  item      Item                  @relation(fields: [itemId], references: [id])
+  createdAt DateTime              @default(now())
+}
+
+model Asset {
+  id           String    @id @default(cuid())
+  type         AssetType
+  name         String
+  value        Decimal   @default(0)
+  purchasedAt  DateTime?
+  depreciation Decimal   @default(0)
+  active       Boolean   @default(true)
+  notes        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model PettyCashEntry {
+  id         String        @id @default(cuid())
+  type       CashEntryType
+  amount     Decimal       @default(0)
+  purpose    String
+  employeeId String?
+  checkedOut Boolean       @default(false)
+  entryDate  DateTime      @default(now())
+  notes      String?
+  employee   Employee?     @relation(fields: [employeeId], references: [id])
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+}
+
+model FixedExpense {
+  id         String        @id @default(cuid())
+  type       CashEntryType
+  amount     Decimal       @default(0)
+  purpose    String
+  employeeId String?
+  entryDate  DateTime      @default(now())
+  employee   Employee?     @relation(fields: [employeeId], references: [id])
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+}
+
+model Employee {
+  id               String           @id @default(cuid())
+  name             String
+  phone            String?
+  role             String?
+  active           Boolean          @default(true)
+  tags             EmployeeTag[]
+  shifts           Shift[]
+  salesAsSeller    Sale[]           @relation("SalesPersonSales")
+  salesAsService   Sale[]           @relation("ServicePersonSales")
+  pettyCashEntries PettyCashEntry[]
+  fixedExpenses    FixedExpense[]
+  serviceItems      Item[]           @relation("ItemServicePerson")
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+}
+
+model EmployeeTag {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  employees Employee[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model Shift {
+  id         String    @id @default(cuid())
+  employeeId String?
+  eventId    String?
+  type       ShiftType
+  startsAt   DateTime
+  endsAt     DateTime
+  location   String?
+  notes      String?
+  employee   Employee? @relation(fields: [employeeId], references: [id])
+  event      Event?    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([eventId])
+}
+
+model Sop {
+  id          String    @id @default(cuid())
+  title       String
+  category    String?
+  status      SopStatus @default(DRAFT)
+  description String?
+  steps       SopStep[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model SopStep {
+  id          String     @id @default(cuid())
+  sopId       String
+  title       String
+  owner       String?
+  sortOrder   Int        @default(0)
+  status      StepStatus @default(TODO)
+  description String?
+  sop         Sop        @relation(fields: [sopId], references: [id], onDelete: Cascade)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model Event {
+  id              String              @id @default(cuid())
+  title           String
+  term            String?
+  startsAt        DateTime?
+  endsAt          DateTime?
+  preparationNote String?
+  active          Boolean             @default(true)
+  registrations   EventRegistration[]
+  items           Item[]
+  shifts          Shift[]
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+}
+
+model EventRegistration {
+  id            String             @id @default(cuid())
+  eventId       String
+  itemId        String?
+  customerId    String?
+  saleId        String?
+  attendeeName  String
+  phone         String?
+  registeredAt  DateTime           @default(now())
+  status        RegistrationStatus @default(REGISTERED)
+  paidAmount    Decimal            @default(0)
+  paymentMethod PaymentMethod      @default(TRANSFER)
+  remittanceRef String?
+  notes         String?
+  event         Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  item          Item?              @relation(fields: [itemId], references: [id])
+  customer      Customer?          @relation(fields: [customerId], references: [id])
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+}
+
+model Customer {
+  id             String                  @id @default(cuid())
+  name           String
+  phone          String?
+  email          String?
+  serviceLink    String?
+  notes          String?
+  serviceRecords CustomerServiceRecord[]
+  coursePayments CoursePayment[]
+  registrations  EventRegistration[]
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+}
+
+model CustomerServiceRecord {
+  id         String   @id @default(cuid())
+  customerId String
+  topic      String
+  link       String?
+  recordedAt DateTime @default(now())
+  notes      String?
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model CoursePayment {
+  id            String        @id @default(cuid())
+  customerId    String
+  courseName    String
+  amount        Decimal       @default(0)
+  paymentMethod PaymentMethod @default(TRANSFER)
+  paidAt        DateTime?
+  remittanceRef String?
+  status        String        @default("待確認")
+  customer      Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
