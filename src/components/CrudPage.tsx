@@ -30,6 +30,7 @@ type RecordValue = string | number | boolean | null | Record<string, unknown> | 
 type DataRecord = Record<string, RecordValue> & { id: string };
 type FormValue = string | number | boolean | string[];
 const fixedExpenseEmployeeTags = new Set(["外部合作廠商", "內部員工", "外部員工"]);
+const pettyCashEmployeeTags = new Set(["內部員工", "外部員工"]);
 const fixedExpenseSystemSalaryTag = "外部員工";
 const fixedExpenseDailySalary = 1000;
 const oilDonationItemType = "OIL_DONATION";
@@ -315,6 +316,8 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
   const [fixedExpenseShiftRecords, setFixedExpenseShiftRecords] = useState<DataRecord[]>([]);
   const [pageSize, setPageSize] = useState(30);
   const [deleteBlockMessage, setDeleteBlockMessage] = useState("");
+  const [sopModalOpen, setSopModalOpen] = useState(false);
+  const [sopPreviewRecord, setSopPreviewRecord] = useState<DataRecord | null>(null);
   const showItemFilters = config.slug === "items";
   const showInventoryBatch = config.slug === "inventory";
   const showAssetMonthTools = config.slug === "assets";
@@ -323,11 +326,14 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
   const showFixedExpenseFilters = config.slug === "fixed-expenses";
   const showRegistrationFilters = config.slug === "event-registrations";
   const showEventRegistrationSalesForm = config.slug === "event-registrations";
+  const showSopModalForm = config.slug === "sops";
   const useWideFormCard =
     showCashBalance || config.slug === "employees" || config.slug === "events" || config.slug === "event-registrations";
   const visibleColumns = config.columns.filter((column) => {
     if (showItemFilters && column === "cost") return false;
     if (config.slug === "events" && column === "period") return false;
+    if (config.slug === "sops" && column === "status") return false;
+    if (config.slug === "sops" && column === "category") return false;
     return true;
   });
   const currentCashBalance = useMemo(() => {
@@ -626,6 +632,24 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
     await load();
   }
 
+  async function submitSop() {
+    setError("");
+    const response = await fetch(editingId ? `/api/${config.api}/${editingId}` : `/api/${config.api}`, {
+      method: editingId ? "PATCH" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form)
+    });
+    if (!response.ok) {
+      const data = await parseJsonResponse(response);
+      setError(apiErrorMessage(data, "儲存失敗。"));
+      return;
+    }
+    setForm(initialForm);
+    setEditingId(null);
+    setSopModalOpen(false);
+    await load();
+  }
+
   function edit(record: DataRecord) {
     const next = { ...initialForm };
     for (const field of config.fields) {
@@ -661,6 +685,9 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
     }
     setForm(next);
     setEditingId(record.id);
+    if (showSopModalForm) {
+      setSopModalOpen(true);
+    }
     if (config.slug === "items") {
       setBatchRows([
         {
@@ -1102,6 +1129,12 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
           return Array.isArray(tags) && tags.some((tag) => fixedExpenseEmployeeTags.has(String(tag.name ?? "")));
         });
       }
+      if (config.slug === "petty-cash" && field.name === "employeeId") {
+        options = options.filter((option) => {
+          const tags = option.tags;
+          return Array.isArray(tags) && tags.some((tag) => pettyCashEmployeeTags.has(String(tag.name ?? "")));
+        });
+      }
       if (config.slug === "event-registrations" && field.name === "itemId") {
         const selectedEventId = String(form.eventId ?? "");
         options = options.filter((option) => option.eventId === selectedEventId);
@@ -1170,6 +1203,67 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
         value={String(value ?? "")}
         onChange={(event) => setForm({ ...form, [field.name]: event.target.value })}
       />
+    );
+  }
+
+  function updateSopDescription(format: "bold" | "h1" | "h2" | "h3") {
+    const current = String(form.description ?? "");
+    const nextValue = (() => {
+      if (format === "bold") return current ? `**${current}**` : "**粗體文字**";
+      const heading = format === "h1" ? "# " : format === "h2" ? "## " : "### ";
+      return current ? `${heading}${current.replace(/^#{1,3}\s*/, "")}` : `${heading}標題`;
+    })();
+    setForm({ ...form, description: nextValue });
+  }
+
+  function sopDescriptionEditor() {
+    return (
+      <Space direction="vertical" size={8} style={{ width: "100%" }}>
+        <Space.Compact>
+          <Button htmlType="button" onClick={() => updateSopDescription("bold")}>
+            B
+          </Button>
+          <Button htmlType="button" onClick={() => updateSopDescription("h1")}>
+            H1
+          </Button>
+          <Button htmlType="button" onClick={() => updateSopDescription("h2")}>
+            H2
+          </Button>
+          <Button htmlType="button" onClick={() => updateSopDescription("h3")}>
+            H3
+          </Button>
+        </Space.Compact>
+        <Input.TextArea
+          rows={16}
+          style={{ width: "100%" }}
+          value={String(form.description ?? "")}
+          onChange={(event) => setForm({ ...form, description: event.target.value })}
+        />
+      </Space>
+    );
+  }
+
+  function renderSopDescriptionPreview(description: unknown) {
+    const lines = String(description ?? "").split(/\r?\n/);
+    if (lines.every((line) => !line.trim())) {
+      return <Typography.Text type="secondary">尚無說明。</Typography.Text>;
+    }
+    return (
+      <Space direction="vertical" size={8} style={{ width: "100%" }}>
+        {lines.map((line, index) => {
+          const text = line.trim();
+          if (!text) return <br key={index} />;
+          if (text.startsWith("### ")) return <Typography.Title key={index} level={3}>{text.slice(4)}</Typography.Title>;
+          if (text.startsWith("## ")) return <Typography.Title key={index} level={2}>{text.slice(3)}</Typography.Title>;
+          if (text.startsWith("# ")) return <Typography.Title key={index} level={1}>{text.slice(2)}</Typography.Title>;
+          const boldMatch = text.match(/^\*\*(.*)\*\*$/);
+          return (
+            <Typography.Paragraph key={index} style={{ marginBottom: 0 }}>
+              {boldMatch ? <strong>{boldMatch[1]}</strong> : text}
+            </Typography.Paragraph>
+          );
+        })}
+      </Space>
     );
   }
 
@@ -1341,7 +1435,55 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
         </Card>
       )}
 
-      {!showItemFilters && !showInventoryBatch && !showEventRegistrationSalesForm && (
+      {showSopModalForm && (
+        <>
+          <Card style={{ marginBottom: 16 }}>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => {
+                setEditingId(null);
+                setForm(initialForm);
+                setSopModalOpen(true);
+              }}
+            >
+              新增 SOP
+            </Button>
+          </Card>
+          <Modal
+            title={editingId ? "編輯 SOP" : "新增 SOP"}
+            open={sopModalOpen}
+            okText={editingId ? "更新" : "新增"}
+            cancelText="取消"
+            width={900}
+            onOk={() => void submitSop()}
+            onCancel={() => {
+              setSopModalOpen(false);
+              setEditingId(null);
+              setForm(initialForm);
+            }}
+          >
+            <Form layout="vertical">
+              {renderFormField("title", "compact-form-wide")}
+              <Form.Item label="說明" style={{ maxWidth: "none" }}>
+                {sopDescriptionEditor()}
+              </Form.Item>
+              {error && <Alert type="error" message={error} showIcon />}
+            </Form>
+          </Modal>
+          <Modal
+            title={String(sopPreviewRecord?.title ?? "SOP 說明")}
+            open={Boolean(sopPreviewRecord)}
+            footer={null}
+            width={720}
+            onCancel={() => setSopPreviewRecord(null)}
+          >
+            {renderSopDescriptionPreview(sopPreviewRecord?.description)}
+          </Modal>
+        </>
+      )}
+
+      {!showItemFilters && !showInventoryBatch && !showEventRegistrationSalesForm && !showSopModalForm && (
         <Card className={`compact-form-card${useWideFormCard ? " wide-form-card" : ""}`} style={{ marginBottom: 16 }}>
           <Form layout="vertical" onFinish={() => void submit()}>
             <div className="compact-form-grid">
@@ -1866,6 +2008,13 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
                     checked={record.status === "PAID"}
                     onChange={(event) => toggleRegistrationPaid(record, event.target.checked)}
                   />
+                ) : config.slug === "sops" && column === "title" ? (
+                  <Typography.Link
+                    underline
+                    onClick={() => setSopPreviewRecord(record)}
+                  >
+                    {renderValue(config, record, column)}
+                  </Typography.Link>
                 ) : (
                   renderValue(config, record, column)
                 )

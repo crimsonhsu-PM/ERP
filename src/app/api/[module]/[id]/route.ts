@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireApiUser } from "@/lib/api-auth";
+import { requireApiModulePermission } from "@/lib/api-auth";
 import { apiError, getApiModule, normalizeData } from "@/lib/api-modules";
 import { prisma } from "@/lib/prisma";
 
@@ -316,10 +316,10 @@ async function syncRegistrationSale(
 }
 
 export async function GET(_request: NextRequest, context: Context) {
-  const auth = await requireApiUser();
+  const { module: slug, id } = await context.params;
+  const auth = await requireApiModulePermission(slug);
   if (auth.response) return auth.response;
 
-  const { module: slug, id } = await context.params;
   const module = getApiModule(slug);
   if (!module || !module.delegate.findUnique) return apiError("Unknown module", 404);
 
@@ -332,10 +332,10 @@ export async function GET(_request: NextRequest, context: Context) {
 }
 
 export async function PATCH(request: NextRequest, context: Context) {
-  const auth = await requireApiUser();
+  const { module: slug, id } = await context.params;
+  const auth = await requireApiModulePermission(slug);
   if (auth.response) return auth.response;
 
-  const { module: slug, id } = await context.params;
   const module = getApiModule(slug);
   if (!module) return apiError("Unknown module", 404);
 
@@ -452,10 +452,10 @@ export async function PATCH(request: NextRequest, context: Context) {
 }
 
 export async function DELETE(_request: NextRequest, context: Context) {
-  const auth = await requireApiUser();
+  const { module: slug, id } = await context.params;
+  const auth = await requireApiModulePermission(slug);
   if (auth.response) return auth.response;
 
-  const { module: slug, id } = await context.params;
   const module = getApiModule(slug);
   if (!module) return apiError("Unknown module", 404);
 

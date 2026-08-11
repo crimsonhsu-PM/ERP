@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireApiUser } from "@/lib/api-auth";
+import { requireApiPermission } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 
 type Context = {
@@ -40,10 +40,10 @@ function getRange(period: string, date = new Date()) {
 }
 
 export async function GET(request: NextRequest, context: Context) {
-  const auth = await requireApiUser();
+  const { period } = await context.params;
+  const auth = await requireApiPermission(period === "yearly" ? "reports-yearly" : "reports-monthly");
   if (auth.response) return auth.response;
 
-  const { period } = await context.params;
   const dateParam = request.nextUrl.searchParams.get("date");
   const baseDate = dateParam ? new Date(dateParam) : new Date();
   const { start, end } = getRange(period, baseDate);

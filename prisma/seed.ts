@@ -1,16 +1,39 @@
 import { PrismaClient } from "@prisma/client";
 import { hashPassword } from "../src/lib/password";
+import { allPagePermissionKeys, serializePagePermissions } from "../src/lib/permissions";
 
 const prisma = new PrismaClient();
 
 async function main() {
+  const adminRole = await prisma.role.upsert({
+    where: { name: "Admin" },
+    update: {
+      pagePermissions: serializePagePermissions(allPagePermissionKeys),
+      notes: "最高權限帳號，擁有全部模組與頁面權限。",
+      active: true
+    },
+    create: {
+      name: "Admin",
+      pagePermissions: serializePagePermissions(allPagePermissionKeys),
+      notes: "最高權限帳號，擁有全部模組與頁面權限。"
+    }
+  });
+
   const admin = await prisma.user.upsert({
     where: { email: "admin@example.com" },
-    update: {},
+    update: {
+      roleId: adminRole.id,
+      pagePermissions: serializePagePermissions(allPagePermissionKeys),
+      isAdmin: true,
+      active: true
+    },
     create: {
       email: "admin@example.com",
       name: "系統管理員",
-      passwordHash: await hashPassword("password123")
+      passwordHash: await hashPassword("password123"),
+      roleId: adminRole.id,
+      pagePermissions: serializePagePermissions(allPagePermissionKeys),
+      isAdmin: true
     }
   });
 
