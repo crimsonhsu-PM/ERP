@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireApiUser } from "@/lib/api-auth";
+import { requireApiPermission } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 import { calculateSaleLines, type SaleLineInput } from "@/lib/sales";
 
@@ -8,7 +8,7 @@ type Context = {
 };
 
 export async function GET(_request: Request, context: Context) {
-  const auth = await requireApiUser();
+  const auth = await requireApiPermission("sales");
   if (auth.response) return auth.response;
 
   const { id } = await context.params;
@@ -25,7 +25,7 @@ export async function GET(_request: Request, context: Context) {
 }
 
 export async function DELETE(_request: Request, context: Context) {
-  const auth = await requireApiUser();
+  const auth = await requireApiPermission("sales");
   if (auth.response) return auth.response;
 
   const { id } = await context.params;
@@ -37,7 +37,7 @@ export async function DELETE(_request: Request, context: Context) {
 }
 
 export async function PATCH(request: NextRequest, context: Context) {
-  const auth = await requireApiUser();
+  const auth = await requireApiPermission("sales");
   if (auth.response) return auth.response;
 
   const { id } = await context.params;

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireApiUser } from "@/lib/api-auth";
+import { requireApiPermission } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 
 function monthBounds(month: string) {
@@ -29,7 +29,7 @@ function shiftDateToMonth(date: Date, targetYear: number, targetMonth: number) {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireApiUser();
+  const auth = await requireApiPermission("assets");
   if (auth.response) return auth.response;
 
   const body = await request.json();

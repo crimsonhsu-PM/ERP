@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireApiUser } from "@/lib/api-auth";
+import { requireApiPermission } from "@/lib/api-auth";
 import { apiError } from "@/lib/api-modules";
 import { prisma } from "@/lib/prisma";
 
@@ -8,7 +8,7 @@ type Context = {
 };
 
 export async function DELETE(_request: Request, context: Context) {
-  const auth = await requireApiUser();
+  const auth = await requireApiPermission("employees");
   if (auth.response) return auth.response;
 
   const { id } = await context.params;

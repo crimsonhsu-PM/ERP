@@ -1,0 +1,1604 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>UNV.PLAN ERP 離線版</title>
+  <style>
+    :root {
+      --bg: #f5f7fa;
+      --panel: #ffffff;
+      --text: #202124;
+      --muted: #646b73;
+      --line: #dce1e6;
+      --brand: #126a7a;
+      --brand-dark: #0a4f5c;
+      --brand-soft: #e6f4ff;
+      --sider-line: #c8e8ff;
+      --danger: #b3261e;
+      --ok: #13795b;
+    }
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
+    body { margin: 0; font-family: Arial, "Noto Sans TC", sans-serif; color: var(--text); background: var(--bg); letter-spacing: 0; }
+    button, input, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+    .app { min-height: 100vh; display: grid; grid-template-columns: 260px 1fr; }
+    aside { background: #eaf6ff; border-right: 1px solid var(--sider-line); position: sticky; top: 0; height: 100vh; overflow: auto; }
+    .brand { color: #075c78; font-size: 18px; font-weight: 700; padding: 18px 20px; white-space: nowrap; background: #dff2ff; border-bottom: 1px solid var(--sider-line); }
+    .nav { padding: 8px 4px; }
+    .nav-group { margin: 4px 0; }
+    .nav-title { display: flex; align-items: center; gap: 10px; height: 40px; margin: 0 4px; padding: 0 24px; border-radius: 8px; color: #25566f; font-size: 14px; font-weight: 400; line-height: 40px; }
+    .nav-title svg, .nav button svg { width: 14px; height: 14px; flex: 0 0 auto; }
+    .nav-title::after { content: "⌄"; margin-left: auto; color: rgba(0, 0, 0, 0.45); font-size: 12px; }
+    .nav button { display: flex; align-items: center; gap: 10px; width: calc(100% - 8px); min-height: 40px; margin: 4px; text-align: left; border: 0; border-radius: 8px; background: transparent; padding: 0 16px 0 48px; cursor: pointer; color: #25566f; line-height: 40px; transition: background .15s, color .15s; }
+    .nav button:hover { background: #d8efff; color: #0b6382; }
+    .nav button.active { background: #c8e8ff; color: #075c78; font-weight: 700; }
+    main { padding: 24px; min-width: 0; }
+    .topbar { display: flex; gap: 12px; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+    h1 { margin: 0; font-size: 30px; line-height: 1.25; font-weight: 600; }
+    .sub { color: rgba(0, 0, 0, 0.55); margin-top: 6px; }
+    .actions, .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .card { background: var(--panel); border: 1px solid #f0f0f0; border-radius: 8px; padding: 14px 16px; margin-bottom: 16px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03); }
+    .stats { display: grid; grid-template-columns: repeat(4, minmax(160px, 1fr)); gap: 16px; margin-bottom: 16px; }
+    .stat { background: var(--panel); border: 1px solid #f0f0f0; border-radius: 8px; padding: 14px 16px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03); color: rgba(0, 0, 0, 0.45); }
+    .stat b { display: block; font-size: 24px; margin-top: 6px; color: rgba(0, 0, 0, 0.88); font-weight: 600; }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); column-gap: 12px; row-gap: 8px; align-items: end; }
+    .sales-form-grid { display: grid; grid-template-columns: repeat(auto-fit, 180px); gap: 14px 18px; align-items: end; }
+    .sales-detail-card { border: 1px solid #f0f0f0; border-radius: 8px; padding: 12px; margin-top: 16px; margin-bottom: 16px; background: #fff; }
+    .sales-detail-title { font-weight: 600; margin-bottom: 10px; }
+    .sales-line-row { display: grid; grid-template-columns: minmax(190px, 300px) minmax(160px, 220px) 88px 96px; gap: 8px; margin-bottom: 12px; align-items: end; }
+    .sales-line-header { margin-bottom: 6px; color: rgba(0, 0, 0, 0.88); font-weight: 600; }
+    .required-column-label::before { content: "*"; color: #ff4d4f; margin-inline-end: 4px; }
+    .batch-item-grid, .batch-inventory-grid { display: grid; gap: 8px; }
+    .batch-item-row { display: grid; grid-template-columns: 24px 110px minmax(160px, 1fr) 90px 64px 96px 64px; gap: 8px; align-items: center; }
+    .batch-inventory-row { display: grid; grid-template-columns: 20px minmax(112px, 1fr) minmax(108px, .8fr) minmax(72px, .52fr) minmax(72px, .52fr) minmax(126px, .92fr) minmax(90px, .78fr) 58px; column-gap: 7px; row-gap: 8px; align-items: center; }
+    .batch-item-header { color: rgba(0, 0, 0, 0.88); font-weight: 600; }
+    .cash-summary-row { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+    .petty-cash-balance { display: flex; min-width: 220px; width: fit-content; padding: 10px 14px; flex-direction: column; gap: 6px; border: 1px solid #d8e7f3; border-radius: 8px; background: #f5fbff; }
+    .topbar .actions { display: none; }
+    .permissions-stack { display: grid; gap: 16px; }
+    .antd-card { background: #fff; border: 1px solid #f0f0f0; border-radius: 8px; margin-bottom: 0; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03); overflow: hidden; }
+    .antd-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; padding: 0 16px; border-bottom: 1px solid #f0f0f0; }
+    .antd-card-title { color: rgba(0, 0, 0, 0.88); font-size: 16px; font-weight: 600; }
+    .antd-card-body { padding: 16px; }
+    .antd-form-row { display: grid; grid-template-columns: repeat(3, minmax(180px, 1fr)); column-gap: 12px; row-gap: 0; align-items: end; }
+    .antd-form-actions { display: flex; gap: 12px; align-items: center; margin-top: 12px; }
+    .permission-tree { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; padding: 8px 0; }
+    .permission-group { border: 1px solid #f0f0f0; border-radius: 8px; padding: 10px; }
+    .permission-group strong { display: block; margin-bottom: 6px; }
+    .switch { position: relative; display: inline-flex; width: 44px; height: 22px; align-items: center; justify-content: flex-start; border: 0; border-radius: 999px; background: #1677ff; padding: 0 6px; color: #fff; font-size: 12px; }
+    .switch.off { justify-content: flex-end; background: rgba(0, 0, 0, 0.25); }
+    .switch::after { content: ""; position: absolute; left: 24px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: left .15s; }
+    .switch.off::after { left: 2px; }
+    .switch:disabled { opacity: .45; cursor: not-allowed; }
+    .modal-backdrop { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 24px; background: rgba(0,0,0,.45); }
+    .modal-panel { width: min(640px, 100%); max-height: calc(100vh - 48px); overflow: auto; background: #fff; border-radius: 8px; box-shadow: 0 12px 32px rgba(0,0,0,.22); }
+    .modal-head, .modal-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; border-bottom: 1px solid #f0f0f0; }
+    .modal-foot { justify-content: flex-end; border-top: 1px solid #f0f0f0; border-bottom: 0; }
+    .modal-body { padding: 18px; }
+    .modal-space { display: grid; gap: 12px; }
+    .alert { padding: 8px 12px; border: 1px solid #ffe58f; border-radius: 6px; background: #fffbe6; color: rgba(0, 0, 0, 0.88); font-size: 14px; }
+    label { display: grid; gap: 4px; color: rgba(0, 0, 0, 0.88); font-size: 14px; }
+    input, select, textarea { width: 100%; min-height: 32px; border: 1px solid #d9d9d9; border-radius: 6px; padding: 4px 11px; background: #fff; color: rgba(0, 0, 0, 0.88); outline: none; transition: border-color .15s, box-shadow .15s; }
+    input:focus, select:focus, textarea:focus { border-color: #4096ff; box-shadow: 0 0 0 2px rgba(5, 145, 255, 0.1); }
+    textarea { min-height: 32px; resize: vertical; }
+    .check { display: flex; gap: 8px; align-items: center; height: 32px; color: rgba(0, 0, 0, 0.88); }
+    .check input { width: auto; }
+    button, .file-btn { min-height: 32px; border: 1px solid #d9d9d9; border-radius: 6px; background: #fff; padding: 4px 15px; cursor: pointer; color: rgba(0, 0, 0, 0.88); line-height: 1.5715; transition: border-color .15s, color .15s, background .15s; }
+    button:hover, .file-btn:hover { color: #1677ff; border-color: #1677ff; }
+    button.primary { background: #1677ff; color: white; border-color: #1677ff; }
+    button.primary:hover { background: #4096ff; color: white; border-color: #4096ff; }
+    button.danger { color: var(--danger); }
+    button.danger:hover { border-color: var(--danger); }
+    button.ghost { background: transparent; }
+    .icon-btn { width: 32px; min-width: 32px; padding: 0; display: inline-grid; place-items: center; font-size: 15px; }
+    .table-actions { display: flex; gap: 8px; align-items: center; flex-wrap: nowrap; }
+    table { width: 100%; border-collapse: collapse; background: white; }
+    th, td { border-bottom: 1px solid #f0f0f0; padding: 8px; text-align: left; vertical-align: middle; font-size: 14px; }
+    th { color: rgba(0, 0, 0, 0.88); font-weight: 600; background: #fafafa; position: sticky; top: 0; }
+    tbody tr:hover td { background: #fafafa; }
+    .table-wrap { overflow: auto; border: 1px solid #f0f0f0; border-radius: 8px; background: white; max-height: calc(100vh - 360px); }
+    .badge { display: inline-flex; border-radius: 4px; padding: 1px 7px; border: 1px solid #91caff; background: #e6f4ff; color: #0958d9; font-size: 12px; margin: 2px; }
+    .muted { color: var(--muted); }
+    .bar { height: 10px; background: #edf2f7; border-radius: 999px; overflow: hidden; }
+    .bar span { display: block; height: 100%; background: var(--ok); }
+    .dashboard-card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-bottom: 16px; }
+    .dashboard-daily-card, .dashboard-goal-card { display: grid; gap: 8px; }
+    .dashboard-daily-header, .dashboard-goal-header, .dashboard-goal-line { display: flex; gap: 12px; align-items: flex-start; justify-content: space-between; }
+    .statistic-title { color: rgba(0, 0, 0, 0.45); font-size: 14px; }
+    .statistic-value { font-size: 24px; line-height: 1.35; font-weight: 600; }
+    .small-input { width: 132px; min-height: 24px; padding: 1px 7px; font-size: 14px; }
+    .small-btn { min-height: 24px; padding: 0 7px; font-size: 14px; }
+    .dashboard-goal-progress { display: grid; gap: 4px; }
+    .dashboard-goal-line { align-items: center; }
+    .progress { height: 8px; overflow: hidden; border-radius: 999px; background: #f5f5f5; }
+    .progress span { display: block; height: 100%; border-radius: inherit; background: #1677ff; }
+    .progress-text { color: rgba(0, 0, 0, 0.45); font-size: 13px; text-align: right; }
+    .daily-revenue-chart { display: flex; gap: 8px; align-items: end; overflow-x: auto; padding-top: 8px; }
+    .daily-revenue-bar-cell { display: grid; grid-template-rows: 150px 22px; gap: 8px; flex: 1 0 18px; align-items: end; padding: 0; border: 0; background: transparent; cursor: pointer; }
+    .daily-revenue-bar-wrap { display: flex; height: 150px; align-items: end; border-radius: 6px; background: #eef1f4; overflow: hidden; outline: 1px solid transparent; }
+    .daily-revenue-bar-cell:hover .daily-revenue-bar-wrap { outline-color: #0b7f95; background: #e2f3f7; }
+    .daily-revenue-bar { width: 100%; border-radius: 6px 6px 0 0; background: #0b7f95; }
+    .daily-revenue-day { display: block; text-align: center; font-size: 12px; line-height: 20px; color: rgba(0, 0, 0, 0.45); }
+    .revenue-share-layout { display: grid; grid-template-columns: minmax(220px, 260px) minmax(0, 1fr); gap: 20px; align-items: start; overflow: hidden; }
+    .revenue-share-pie-panel { display: flex; flex-direction: column; gap: 12px; align-items: center; }
+    .revenue-share-pie-wrap { position: relative; width: min(240px, 100%); aspect-ratio: 1; }
+    .revenue-share-pie { width: 100%; height: 100%; transform: rotate(-90deg); }
+    .revenue-share-pie-bg, .revenue-share-pie-segment { fill: none; stroke-width: 18; }
+    .revenue-share-pie-segment { cursor: pointer; transition: opacity .15s; }
+    .revenue-share-pie-segment.is-dimmed { opacity: .35; }
+    .revenue-share-pie-bg { stroke: #eef1f4; }
+    .revenue-share-pie-center { position: absolute; inset: 50%; display: flex; width: 132px; height: 132px; padding: 16px; transform: translate(-50%, -50%); flex-direction: column; align-items: center; justify-content: center; text-align: center; border-radius: 50%; background: #fff; box-shadow: inset 0 0 0 1px #edf0f2; }
+    .revenue-share-chart, .revenue-share-item-list { display: grid; gap: 10px; min-width: 0; }
+    .revenue-share-row { display: grid; grid-template-columns: 28px minmax(130px, 210px) minmax(120px, 1fr) 76px; gap: 10px; align-items: center; min-width: 0; }
+    .revenue-share-row.interactive { cursor: pointer; border-radius: 6px; }
+    .revenue-share-row.interactive:hover { background: #f5fbff; }
+    .revenue-share-child-row { grid-template-columns: 0 minmax(130px, 210px) minmax(120px, 1fr) 76px; color: #4b5563; padding-left: 36px; }
+    .revenue-share-rank { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 6px; color: #fff; font-size: 12px; font-weight: 700; }
+    .revenue-share-meta, .revenue-share-value { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .revenue-share-meta strong, .revenue-share-value strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .revenue-share-value { align-items: flex-end; }
+    .revenue-share-track { height: 16px; overflow: hidden; border-radius: 999px; background: #eef1f4; }
+    .revenue-share-bar { height: 100%; border-radius: inherit; }
+    .empty { padding: 24px; text-align: center; color: rgba(0, 0, 0, 0.45); }
+    .report-lines { display: grid; gap: 8px; }
+    .report-lines hr { width: 100%; border: 0; border-top: 1px solid #f0f0f0; margin: 4px 0; }
+    .expand-cell { width: 40px; text-align: center; }
+    .expand-btn { display: inline-grid; place-items: center; width: 17px; min-width: 17px; height: 17px; padding: 0; border-radius: 4px; font-size: 12px; line-height: 1; }
+    .report-child-row td { padding: 0 0 0 40px; background: #fafafa; }
+    .report-child-table { border: 0; border-radius: 0; }
+    .report-child-table table { background: transparent; }
+    .shift-calendar-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+    .shift-workday-summary { display: grid; gap: 8px; margin-bottom: 12px; padding: 10px 12px; border: 1px solid #e6f4ff; border-radius: 8px; background: #f6fbff; }
+    .shift-workday-groups { display: grid; gap: 8px; }
+    .shift-workday-group { display: grid; grid-template-columns: 42px minmax(0, 1fr); align-items: start; gap: 8px; }
+    .shift-workday-list { display: flex; flex-wrap: wrap; gap: 8px; }
+    .shift-workday-chip { display: inline-flex; align-items: center; gap: 8px; min-height: 30px; padding: 4px 10px; border: 1px solid #bae0ff; border-radius: 999px; background: #fff; color: #0f172a; line-height: 1.2; }
+    .shift-workday-chip strong { color: #075985; }
+    .segmented { display: inline-flex; padding: 2px; border-radius: 6px; background: #f5f5f5; }
+    .segmented button { border: 0; min-height: 28px; padding: 2px 11px; background: transparent; }
+    .segmented button.active { background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08); color: #1677ff; }
+    .shift-calendar-grid { display: grid; overflow: hidden; grid-template-columns: repeat(7, minmax(0, 1fr)); border: 1px solid #edf0f3; border-radius: 8px; }
+    .shift-weekday-cell { padding: 10px 8px; border-right: 1px solid #edf0f3; background: #fafafa; font-weight: 700; text-align: center; }
+    .shift-weekday-cell:nth-child(7) { border-right: 0; }
+    .shift-calendar-week { position: relative; display: grid; grid-column: 1 / -1; grid-template-columns: repeat(7, minmax(0, 1fr)); --range-note-rows: 0; }
+    .shift-calendar-empty-cell, .shift-calendar-day { min-height: 112px; padding: 8px; border: 0; border-top: 1px solid #edf0f3; border-right: 1px solid #edf0f3; background: #fff; }
+    .shift-calendar-day { display: flex; flex-direction: column; gap: 8px; color: inherit; text-align: left; }
+    .shift-calendar-day:hover { background: #f5fbff; }
+    .shift-calendar-week > .shift-calendar-empty-cell:last-child, .shift-calendar-week > .shift-calendar-day:last-child { border-right: 0; }
+    .shift-calendar-day-header { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-width: 0; }
+    .shift-calendar-date { width: fit-content; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 999px; background: #e6f4ff; color: #075985; font-weight: 700; line-height: 24px; text-align: center; }
+    .shift-add-button { display: inline-grid; place-items: center; width: 20px; min-width: 20px; height: 20px; padding: 0; color: rgba(7, 89, 133, 0.56); background: rgba(255, 255, 255, 0.82); border: 1px solid rgba(186, 230, 253, 0.78); border-radius: 999px; box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08); line-height: 1; }
+    .shift-range-note-spacer { height: calc(var(--range-note-rows) * 24px); }
+    .shift-range-note-bar { position: absolute; z-index: 2; top: calc(38px + var(--range-row) * 24px); left: calc((100% / 7) * var(--range-start) + 8px); width: calc((100% / 7) * var(--range-span) - 16px); height: 20px; padding: 0 10px; border: 0; border-radius: 5px; background: #0ea5e9; color: #fff; cursor: pointer; font-size: 12px; font-weight: 700; line-height: 20px; overflow: hidden; text-align: left; text-overflow: ellipsis; white-space: nowrap; box-shadow: 0 1px 2px rgba(14, 116, 144, 0.18); }
+    .shift-range-note-bar:hover { background: #0284c7; color: #fff; }
+    .shift-notes { display: grid; min-width: 0; gap: 3px; color: #075985; font-size: 12px; line-height: 1.35; }
+    .shift-notes button, .shift-note-chip { display: block; width: 100%; padding: 0; border: 0; background: transparent; color: inherit; cursor: pointer; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .shift-notes button:hover { color: #0284c7; text-decoration: underline; }
+    .shift-tags { display: flex; min-width: 0; flex-wrap: wrap; gap: 4px; }
+    .shift-tag { display: inline-flex; max-width: 100%; padding: 1px 7px; border: 1px solid #91caff; border-radius: 4px; background: #e6f4ff; color: #0958d9; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .shift-tag.charity { border-color: #b7eb8f; background: #f6ffed; color: #389e0d; }
+    .shift-modal-panel { width: min(520px, 100%); }
+    .shift-existing-list { display: grid; gap: 8px; }
+    .shift-existing-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; border: 1px solid #f0f0f0; border-radius: 6px; background: #fafafa; }
+    .shift-select-wrap { position: relative; margin-top: 6px; }
+    .shift-employee-select { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; min-height: 32px; width: 100%; padding: 1px 11px; border: 1px solid #d9d9d9; border-radius: 6px; background: #fff; color: rgba(0, 0, 0, 0.25); cursor: pointer; }
+    .shift-employee-select.open { border-color: #4096ff; box-shadow: 0 0 0 2px rgba(5, 145, 255, 0.1); }
+    .shift-select-placeholder { color: rgba(0, 0, 0, 0.25); }
+    .shift-select-tag { display: inline-flex; align-items: center; max-width: 100%; min-height: 22px; padding: 0 7px; border-radius: 4px; background: #f5f5f5; color: rgba(0, 0, 0, 0.88); font-size: 12px; }
+    .shift-select-dropdown { position: absolute; z-index: 30; top: calc(100% + 4px); left: 0; right: 0; display: none; max-height: 150px; overflow: auto; padding: 4px; border-radius: 8px; background: #fff; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12); }
+    .shift-select-dropdown.open { display: block; }
+    .shift-select-option { display: block; width: 100%; min-height: 32px; padding: 5px 12px; border: 0; border-radius: 4px; text-align: left; background: #fff; }
+    .shift-select-option:hover { background: #f5f5f5; }
+    .shift-select-option.selected { background: #e6f4ff; color: #1677ff; }
+    .hidden { display: none !important; }
+    @media (max-width: 900px) {
+      .app { grid-template-columns: 1fr; }
+      aside { position: static; height: auto; }
+      .stats, .form-grid { grid-template-columns: 1fr; }
+      main { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside>
+      <div class="brand">UNV.PLAN ERP</div>
+      <nav class="nav" id="nav"></nav>
+    </aside>
+    <main>
+      <div class="topbar">
+        <div>
+          <h1 id="title"></h1>
+          <div class="sub" id="desc"></div>
+        </div>
+        <div class="actions">
+          <button id="exportBtn">匯出資料</button>
+          <label class="file-btn hidden">匯入資料<input id="importFile" class="hidden" type="file" accept="application/json"></label>
+          <button class="danger hidden" id="resetBtn">重設開發資料</button>
+        </div>
+      </div>
+      <section id="dashboard"></section>
+      <section class="card" id="formCard"></section>
+      <section class="card" id="tableCard">
+        <div class="row" style="justify-content: space-between; margin-bottom: 12px;">
+          <input id="search" placeholder="搜尋目前模組" style="max-width: 320px;">
+          <span class="muted" id="count"></span>
+        </div>
+        <div class="table-wrap"><table id="table"></table></div>
+      </section>
+    </main>
+  </div>
+  <script src="./erp-dev-data.js"></script>
+  <script>
+    const storageKey = "unv.plan.erp.static.v3";
+    const today = "2026-08-11";
+    const now = "2026-08-11T09:00:00.000Z";
+    const defaultMonth = "2026-08";
+    const plusDays = (days) => new Date(new Date(`${today}T00:00:00`).getTime() + days * 86400000).toISOString().slice(0, 10);
+    const labels = {
+      DIVINATION_SERVICE: "占卜服務", RITUAL_SERVICE: "儀式服務", FENG_SHUI_SERVICE: "風水服務", COURSE_SERVICE: "課程服務",
+      OIL_DONATION: "香油捐贈", PHYSICAL_PRODUCT: "實體商品", CASH: "現金", TRANSFER: "匯款", CARD: "刷卡", LINE_PAY: "Line Pay",
+      OTHER: "其他", PURCHASE: "進貨", SALE: "銷售", ADJUSTMENT: "調整", CONSUMPTION: "耗用", FIXED: "固定資產",
+      VARIABLE: "變動資產", INCOME: "存入", EXPENSE: "支出", ONSITE: "現場服務", CHARITY: "公益服務", ACTIVE: "啟用",
+      DRAFT: "草稿", ARCHIVED: "封存", TODO: "待辦", DOING: "進行中", DONE: "完成", REGISTERED: "已報名", PAID: "已付款", CANCELLED: "取消"
+    };
+    const groups = [
+      ["營收", ["sales", "dashboard"]],
+      ["管理", ["items", "employees", "shifts"]],
+      ["報表", ["reports-monthly"]],
+      ["資產", ["inventory", "petty-cash", "fixed-expenses"]],
+      ["活動", ["events"]],
+      ["系統", ["permissions"]]
+    ];
+    const modules = {
+      dashboard: { title: "數據總覽", desc: "離線版會依目前瀏覽器資料即時計算。", dashboard: true },
+      "reports-monthly": { title: "月報表", desc: "月營收、支出與毛利摘要。", report: true },
+      "reports-yearly": { title: "年報表", desc: "年度營收、支出與股東利潤摘要。", report: true },
+      sales: { title: "營收登記", desc: "建立每筆營收，服務只記錄收入，商品會自動扣庫存。", fields: [
+        ["soldAt", "銷售日期", "date"], ["customerName", "客戶名稱", "text"], ["salesPersonId", "銷售人員", "employees"], ["paymentMethod", "付款方式", "enum:payments"], ["notes", "匯款資訊", "text"]
+      ], columns: ["soldAt", "customerName", "salesPerson", "servicePerson", "paymentMethod", "total"] },
+      items: { title: "進銷項目", desc: "服務與實體商品。", fields: [
+        ["type", "類型", "enum:itemTypes"], ["name", "名稱", "text"], ["price", "售價", "number"], ["cost", "成本", "number"], ["requiresInventory", "需要庫存", "checkbox"], ["active", "啟用", "checkbox"], ["notes", "備註", "textarea"]
+      ], columns: ["type", "name", "price", "cost", "requiresInventory", "stockQuantity", "active"] },
+      inventory: { title: "庫存紀錄", desc: "進貨、銷售、調整與耗用。", fields: [["itemId", "品項", "items"], ["type", "異動", "enum:inventoryTypes"], ["quantity", "數量", "number"], ["movedAt", "日期", "date"], ["reason", "原因", "textarea"]], columns: ["item", "type", "quantity", "stockQuantity", "movedAt", "reason"] },
+      assets: { title: "固定/變動資產", desc: "店內設備、用品與其他資產。", fields: [["type", "類型", "enum:assetTypes"], ["name", "名稱", "text"], ["value", "價值", "number"], ["purchasedAt", "購買日期", "date"], ["depreciation", "折舊", "number"], ["active", "啟用", "checkbox"], ["notes", "備註", "textarea"]], columns: ["type", "name", "value", "purchasedAt", "depreciation", "active"] },
+      "petty-cash": { title: "零用金", desc: "零用金收入、支出與出帳狀態。", fields: [["type", "類型", "enum:cashTypes"], ["amount", "金額", "number"], ["purpose", "用途", "text"], ["employeeId", "代墊者", "employees"], ["entryDate", "日期", "date"], ["checkedOut", "出帳", "checkbox"]], columns: ["type", "amount", "purpose", "employee", "entryDate", "checkedOut"] },
+      "fixed-expenses": { title: "固定支出", desc: "固定費用、人員薪資與支出對象。", fields: [["type", "類型", "enum:cashTypes"], ["amount", "金額", "number"], ["purpose", "用途", "text"], ["employeeId", "支出對象", "employees"], ["entryDate", "日期", "date"]], columns: ["type", "amount", "purpose", "employee", "entryDate"] },
+      employees: { title: "人員管理", desc: "員工與合作人員。", fields: [["name", "姓名", "text", { required: true }], ["role", "職務", "text"], ["tagIds", "TAG", "employee-tags", { required: true }], ["active", "啟用", "checkbox"]], columns: ["name", "role", "tags", "active"] },
+      shifts: { title: "排班紀錄", desc: "人員、活動與現場排班。", fields: [["employeeId", "員工", "employees"], ["eventId", "活動", "events"], ["type", "類型", "enum:shiftTypes"], ["startsAt", "開始", "date"], ["endsAt", "結束", "date"], ["location", "地點", "text"], ["notes", "備註", "textarea"]], columns: ["employee", "event", "type", "startsAt", "endsAt", "location"] },
+      events: { title: "活動管理", desc: "管理不定期活動、活動品項與前置作業。", fields: [["title", "活動名稱", "text"], ["startsAt", "活動日期", "date"], ["endsAt", "結束日期", "date"]], columns: ["title", "startsAt", "endsAt"] },
+      "event-registrations": { title: "活動報名", desc: "活動報名與付款狀態。", fields: [["eventId", "活動", "events"], ["itemId", "進銷項目", "items"], ["attendeeName", "姓名", "text"], ["phone", "電話", "text"], ["registeredAt", "報名日", "date"], ["status", "付款", "enum:registrationTypes"], ["paidAmount", "金額", "number"], ["paymentMethod", "付款方式", "enum:payments"], ["remittanceRef", "匯款資訊", "text"]], columns: ["event", "item", "registeredAt", "attendeeName", "phone", "status", "paidAmount"] },
+      customers: { title: "客戶資料", desc: "客戶聯絡方式與服務連結。", fields: [["name", "姓名", "text"], ["phone", "電話", "text"], ["email", "Email", "text"], ["serviceLink", "服務連結", "text"], ["notes", "備註", "textarea"]], columns: ["name", "phone", "email", "serviceLink"] },
+      "customer-service-records": { title: "客服紀錄", desc: "服務主題、連結與備註。", fields: [["customerId", "客戶", "customers"], ["topic", "主題", "text"], ["link", "連結", "text"], ["recordedAt", "日期", "date"], ["notes", "備註", "textarea"]], columns: ["customer", "topic", "link", "recordedAt"] },
+      "course-payments": { title: "課程付款", desc: "課程付款與匯款確認。", fields: [["customerId", "客戶", "customers"], ["courseName", "課程", "text"], ["amount", "金額", "number"], ["paymentMethod", "付款方式", "enum:payments"], ["paidAt", "付款日", "date"], ["remittanceRef", "匯款資訊", "text"], ["status", "狀態", "text"]], columns: ["customer", "courseName", "amount", "paymentMethod", "paidAt", "status"] },
+      sops: { title: "SOP", desc: "標準作業流程。", fields: [["title", "標題", "text"], ["category", "分類", "text"], ["status", "狀態", "enum:sopTypes"], ["description", "說明", "textarea"]], columns: ["title", "category", "status", "description"] },
+      "sop-steps": { title: "SOP 步驟", desc: "每個 SOP 的執行步驟。", fields: [["sopId", "SOP", "sops"], ["sortOrder", "排序", "number"], ["title", "步驟", "text"], ["owner", "負責", "text"], ["status", "狀態", "enum:stepTypes"], ["description", "說明", "textarea"]], columns: ["sop", "sortOrder", "title", "owner", "status"] },
+      "employee-tags": { title: "人員 TAG", desc: "人員分類。", fields: [["name", "名稱", "text"]], columns: ["name"] },
+      permissions: { title: "權限設定", desc: "設定角色可觀看頁面，並由角色建立帳號權限。", permissions: true, columns: ["group", "label", "href"] }
+    };
+    const enumOptions = {
+      itemTypes: [["DIVINATION_SERVICE","占卜服務"],["RITUAL_SERVICE","儀式服務"],["FENG_SHUI_SERVICE","風水服務"],["COURSE_SERVICE","課程服務"],["OIL_DONATION","香油捐贈"],["PHYSICAL_PRODUCT","實體商品"]],
+      payments: [["CASH","現金"],["TRANSFER","匯款"],["CARD","刷卡"],["LINE_PAY","Line Pay"],["OTHER","其他"]],
+      inventoryTypes: [["PURCHASE","進貨"],["SALE","銷售"],["ADJUSTMENT","調整"],["CONSUMPTION","耗用"]],
+      assetTypes: [["FIXED","固定資產"],["VARIABLE","變動資產"]], cashTypes: [["EXPENSE","支出"],["INCOME","存入"]],
+      shiftTypes: [["ONSITE","現場服務"],["CHARITY","公益服務"]], sopTypes: [["DRAFT","草稿"],["ACTIVE","啟用"],["ARCHIVED","封存"]],
+      stepTypes: [["TODO","待辦"],["DOING","進行中"],["DONE","完成"]], registrationTypes: [["REGISTERED","已報名"],["PAID","已付款"],["CANCELLED","取消"]]
+    };
+    const fallbackSeed = {
+      "employee-tags": [{ id: "tag-internal", name: "內部員工" }, { id: "tag-external", name: "外部員工" }],
+      employees: [{ id: "seed-employee-amy", name: "Amy", phone: "0912-345-678", role: "現場服務", tagIds: ["tag-internal"], active: true }],
+      items: [
+        { id: "seed-service-consulting", type: "DIVINATION_SERVICE", name: "一對一諮詢服務", price: 1800, cost: 300, requiresInventory: false, active: true, notes: "服務銷售範例" },
+        { id: "seed-product-coursebook", type: "PHYSICAL_PRODUCT", name: "課程教材包", price: 600, cost: 220, requiresInventory: true, active: true, notes: "商品銷售範例" }
+      ],
+      inventory: [{ id: "seed-inventory-open", itemId: "seed-product-coursebook", type: "PURCHASE", quantity: 20, movedAt: today, reason: "開帳庫存" }, { id: "seed-inventory-sale", itemId: "seed-product-coursebook", type: "SALE", quantity: -1, movedAt: today, reason: "種子銷售扣庫存" }],
+      customers: [{ id: "seed-customer-lin", name: "林小姐", phone: "0988-000-111", email: "lin@example.com", serviceLink: "https://example.com/customer/lin", notes: "" }],
+      events: [{ id: "seed-event-course", title: "線上課程體驗營", term: "第一期", startsAt: plusDays(7), endsAt: plusDays(8), preparationNote: "確認講義、匯款資訊與課前通知。", active: true }],
+      "event-registrations": [{ id: "seed-registration-lin", eventId: "seed-event-course", itemId: "seed-service-consulting", customerId: "seed-customer-lin", attendeeName: "林小姐", phone: "0988-000-111", registeredAt: today, status: "REGISTERED", paidAmount: 0, paymentMethod: "TRANSFER", remittanceRef: "", notes: "" }],
+      "course-payments": [{ id: "seed-course-payment", customerId: "seed-customer-lin", courseName: "線上課程體驗營", amount: 1200, paymentMethod: "TRANSFER", paidAt: "", remittanceRef: "", status: "待確認" }],
+      "customer-service-records": [{ id: "seed-service-record", customerId: "seed-customer-lin", topic: "課程諮詢", link: "https://example.com/customer/lin", recordedAt: today, notes: "詢問體驗營報名資訊。" }],
+      shifts: [{ id: "seed-shift-amy", employeeId: "seed-employee-amy", eventId: "", type: "ONSITE", startsAt: today, endsAt: today, location: "門市", notes: "" }],
+      sops: [{ id: "seed-sop-close", title: "每日結帳流程", category: "營收", status: "ACTIVE", description: "確認營收流水、現金、匯款與零用金支出。" }],
+      "sop-steps": [{ id: "seed-sop-step-1", sopId: "seed-sop-close", sortOrder: 1, title: "核對當日銷售單", owner: "櫃台", status: "TODO", description: "" }, { id: "seed-sop-step-2", sopId: "seed-sop-close", sortOrder: 2, title: "確認現金與匯款", owner: "會計", status: "TODO", description: "" }],
+      sales: [{ id: "seed-sale-1", soldAt: now, customerName: "林小姐", salesPersonId: "seed-employee-amy", servicePersonId: "seed-employee-amy", paymentMethod: "CASH", status: "CLOSED", subtotal: 2400, discount: 0, total: 2400, notes: "", lines: [{ itemId: "seed-service-consulting", quantity: 1, unitPrice: 1800, lineTotal: 1800 }, { itemId: "seed-product-coursebook", quantity: 1, unitPrice: 600, lineTotal: 600 }] }],
+      assets: [{ id: "seed-asset-tablet", type: "FIXED", name: "櫃台平板", value: 18000, purchasedAt: today, depreciation: 1500, active: true, notes: "開發資料" }],
+      "petty-cash": [{ id: "seed-petty-1", type: "EXPENSE", amount: 280, purpose: "講義影印", employeeId: "seed-employee-amy", checkedOut: false, entryDate: today, notes: "" }],
+      "fixed-expenses": [{ id: "seed-fixed-1", type: "EXPENSE", amount: 25000, purpose: "房租", employeeId: "seed-employee-amy", entryDate: today }]
+    };
+    fallbackSeed.permissions = [
+      { id: "perm-dashboard", key: "dashboard", group: "營收", label: "數據總覽", href: "/dashboard" },
+      { id: "perm-sales", key: "sales", group: "營收", label: "營收登記", href: "/sales" },
+      { id: "perm-items", key: "items", group: "管理", label: "進銷項目", href: "/items" },
+      { id: "perm-employees", key: "employees", group: "管理", label: "人員管理", href: "/employees" },
+      { id: "perm-shifts", key: "shifts", group: "管理", label: "排班紀錄", href: "/shifts" },
+      { id: "perm-reports-monthly", key: "reports-monthly", group: "報表", label: "月報表", href: "/reports/monthly" },
+      { id: "perm-reports-yearly", key: "reports-yearly", group: "報表", label: "年報表", href: "/reports/yearly" },
+      { id: "perm-inventory", key: "inventory", group: "資產", label: "庫存紀錄", href: "/inventory" },
+      { id: "perm-petty-cash", key: "petty-cash", group: "資產", label: "零用支出", href: "/petty-cash" },
+      { id: "perm-fixed-expenses", key: "fixed-expenses", group: "資產", label: "固定支出", href: "/fixed-expenses" },
+      { id: "perm-events", key: "events", group: "活動", label: "活動管理", href: "/events" },
+      { id: "perm-sops", key: "sops", group: "服務", label: "SOP", href: "/sops" },
+      { id: "perm-customer-service-records", key: "customer-service-records", group: "服務", label: "客服紀錄", href: "/customer-service-records" },
+      { id: "perm-permissions", key: "permissions", group: "系統", label: "權限設定", href: "/permissions" }
+    ];
+    const seed = window.ERP_DEV_DATA || fallbackSeed;
+    seed.permissions = fallbackSeed.permissions;
+    function parsePermissionList(value) {
+      if (Array.isArray(value)) return value;
+      if (typeof value !== "string") return [];
+      try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    function normalizePermissionsData(data) {
+      const permissionKeys = new Set((fallbackSeed.permissions || []).map((permission) => permission.key));
+      data.permissions = fallbackSeed.permissions;
+      data.roles = (data.roles || []).map((role) => ({
+        ...role,
+        pagePermissions: parsePermissionList(role.pagePermissions).filter((key) => permissionKeys.has(key))
+      }));
+      data.users = (data.users || []).map((user) => {
+        const pagePermissions = user.isAdmin
+          ? [...permissionKeys]
+          : parsePermissionList(user.pagePermissions).filter((key) => permissionKeys.has(key));
+        const role = user.role || (user.roleId ? (data.roles || []).find((item) => item.id === user.roleId) : null);
+        return {
+          ...user,
+          pagePermissions,
+          role: role ? { id: role.id, name: role.name } : null
+        };
+      });
+      return data;
+    }
+    let state = loadState();
+    let current = location.hash.replace("#", "") || "dashboard";
+    let eventTab = "event-registrations";
+    let shiftMonth = defaultMonth;
+    let reportMonth = defaultMonth;
+    let shiftDisplayMode = "ALL";
+    let editingId = "";
+    let editingPermissionUserId = "";
+    let itemBatchRows = [{ type: "DIVINATION_SERVICE", name: "", price: 0, requiresInventory: false, inventoryQuantity: 0 }];
+    let inventoryBatchRows = [{ itemId: "", type: "PURCHASE", quantity: 0, movedAt: today, reason: "" }];
+    let eventItemRows = [{ type: "RITUAL_SERVICE", name: "", price: 0, cost: 0, requiresInventory: false, inventoryQuantity: 0, active: true }];
+    let eventItemRowsSourceId = "";
+    const expandedReportTypes = new Set();
+    const collapsedRevenueShareTypes = new Set();
+    let salesLineRows = [{ itemId: "", servicePersonId: "", quantity: 1, unitPrice: 0 }];
+    let salesLineRowsSourceId = "";
+    function loadState() {
+      const saved = localStorage.getItem(storageKey);
+      if (!saved) return normalizePermissionsData(structuredClone(seed));
+      try {
+        const merged = { ...structuredClone(seed), ...JSON.parse(saved) };
+        merged.roles = structuredClone(seed.roles || []);
+        merged.users = structuredClone(seed.users || []);
+        merged.events = structuredClone(seed.events || []);
+        merged.items = structuredClone(seed.items || []);
+        return normalizePermissionsData(merged);
+      } catch { return normalizePermissionsData(structuredClone(seed)); }
+    }
+    function save() { localStorage.setItem(storageKey, JSON.stringify(state)); }
+    function activeKey() { return current === "events" ? eventTab : current; }
+    function id() { return "local-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+    function money(value) { return Number(value || 0).toLocaleString("zh-TW"); }
+    function dateOnly(value) { return value ? String(value).slice(0, 10) : ""; }
+    function byId(module, value) { return (state[module] || []).find((row) => row.id === value); }
+    function relationLabel(module, value) { const row = byId(module, value); return row ? (row.name || row.title || row.courseName || row.id) : ""; }
+    function stock(itemId) { return (state.inventory || []).filter((row) => row.itemId === itemId).reduce((sum, row) => sum + Number(row.quantity || 0), 0); }
+    function enriched(module, row) {
+      const copy = { ...row };
+      if (row.itemId) copy.item = relationLabel("items", row.itemId);
+      if (row.employeeId) copy.employee = relationLabel("employees", row.employeeId);
+      if (row.customerId) copy.customer = relationLabel("customers", row.customerId);
+      if (row.eventId) copy.event = relationLabel("events", row.eventId);
+      if (row.sopId) copy.sop = relationLabel("sops", row.sopId);
+      if (row.salesPersonId) copy.salesPerson = relationLabel("employees", row.salesPersonId);
+      if (row.servicePersonId) copy.servicePerson = relationLabel("employees", row.servicePersonId);
+      if (module === "items" || module === "inventory") copy.stockQuantity = module === "items" ? (row.requiresInventory ? stock(row.id) : "") : stock(row.itemId);
+      if (module === "employees") copy.tags = (row.tagIds || []).map((tagId) => relationLabel("employee-tags", tagId)).filter(Boolean);
+      return copy;
+    }
+    const dateOnlyColumns = new Set(["soldAt", "movedAt", "purchasedAt", "entryDate", "startsAt", "endsAt", "registeredAt", "recordedAt", "paidAt"]);
+    function formatCell(value, column) {
+      if (dateOnlyColumns.has(column) && value) return dateOnly(value);
+      if (Array.isArray(value)) return value.map((item) => `<span class="badge">${item}</span>`).join("");
+      if (typeof value === "boolean") return value ? "是" : "否";
+      if (labels[value]) return labels[value];
+      if (typeof value === "number") return money(value);
+      return value == null ? "" : String(value);
+    }
+    function navIcon(name) {
+      const icons = {
+        app: "M4 4h7v7H4V4Zm9 0h7v7h-7V4ZM4 13h7v7H4v-7Zm9 0h7v7h-7v-7Z",
+        chart: "M4 19h16v2H4v-2Zm2-8h3v6H6v-6Zm5-6h3v12h-3V5Zm5 3h3v9h-3V8Z",
+        wallet: "M4 6h16v12H4V6Zm2 2v8h12V8H6Zm10 3h2v2h-2v-2Z",
+        shop: "M5 9h14l-1-4H6L5 9Zm1 2v8h12v-8H6Zm3 2h6v4H9v-4Z",
+        team: "M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm8 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM3 19c.5-3 2.5-5 5-5s4.5 2 5 5H3Zm8 0c.3-1.6 1-3 2-3.9.8-.7 1.8-1.1 3-1.1 2.5 0 4.5 2 5 5H11Z",
+        file: "M6 3h9l3 3v15H6V3Zm8 1.5V7h2.5L14 4.5ZM8 11h8v2H8v-2Zm0 4h8v2H8v-2Z",
+        db: "M12 3c4.4 0 8 1.3 8 3v12c0 1.7-3.6 3-8 3s-8-1.3-8-3V6c0-1.7 3.6-3 8-3Zm0 2C8.1 5 6.2 6 6.1 6c.1.1 2 1 5.9 1s5.8-.9 5.9-1c-.1-.1-2-1-5.9-1Zm6 4c-1.5.7-3.6 1-6 1s-4.5-.3-6-1v3c.4.4 2.4 1 6 1s5.6-.6 6-1V9Zm0 6c-1.5.7-3.6 1-6 1s-4.5-.3-6-1v3c.4.4 2.4 1 6 1s5.6-.6 6-1v-3Z",
+        calendar: "M7 2h2v2h6V2h2v2h3v17H4V4h3V2Zm11 8H6v9h12v-9Z",
+        setting: "M19.4 13.5c.1-.5.1-1 .1-1.5s0-1-.1-1.5l2-1.5-2-3.4-2.4 1a7.3 7.3 0 0 0-2.6-1.5L14 2h-4l-.4 3.1C8.7 5.4 7.8 5.9 7 6.5l-2.4-1-2 3.4 2 1.5A8.8 8.8 0 0 0 4.5 12c0 .5 0 1 .1 1.5l-2 1.5 2 3.4 2.4-1c.8.6 1.7 1.1 2.6 1.5L10 22h4l.4-3.1c.9-.3 1.8-.8 2.6-1.5l2.4 1 2-3.4-2-1.5ZM12 15a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"
+      };
+      return `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="${icons[name] || icons.file}"/></svg>`;
+    }
+    const navGroupIcons = { "營收": "app", "管理": "shop", "報表": "chart", "資產": "db", "活動": "calendar", "系統": "setting" };
+    const navItemIcons = { sales: "wallet", dashboard: "chart", items: "shop", employees: "team", shifts: "team", "reports-monthly": "file", "reports-yearly": "file", inventory: "db", "petty-cash": "file", "fixed-expenses": "file", events: "calendar", permissions: "setting" };
+    const navLabels = { "petty-cash": "零用支出" };
+    function renderNav() {
+      nav.innerHTML = groups.map(([group, keys]) => `<div class="nav-group"><div class="nav-title">${navIcon(navGroupIcons[group])}<span>${group}</span></div>${keys.map((key) => `<button class="${key === current ? "active" : ""}" data-nav="${key}">${navIcon(navItemIcons[key])}<span>${navLabels[key] || modules[key].title}</span></button>`).join("")}</div>`).join("");
+      nav.querySelectorAll("button").forEach((button) => button.onclick = () => {
+        current = button.dataset.nav;
+        editingId = "";
+        editingPermissionUserId = "";
+        salesLineRows = [{ itemId: "", servicePersonId: "", quantity: 1, unitPrice: 0 }];
+        salesLineRowsSourceId = "";
+        location.hash = current;
+        render();
+      });
+    }
+    function daysInMonth(month) {
+      const [year, monthNumber] = month.split("-").map(Number);
+      return new Date(year, monthNumber, 0).getDate();
+    }
+    function dateAt(month, day) {
+      return `${month}-${String(day).padStart(2, "0")}`;
+    }
+    function nextDateKey(dateKey) {
+      const [year, month, day] = dateKey.split("-").map(Number);
+      const date = new Date(year, month - 1, day);
+      date.setDate(date.getDate() + 1);
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    }
+    function addShiftForDate(dateKey) {
+      const tagsById = new Map((state["employee-tags"] || []).map((tag) => [tag.id, tag.name]));
+      const rosterTags = new Set(["內部員工", "外部員工"]);
+      const employees = (state.employees || []).filter((employee) => {
+        if (employee.active === false) return false;
+        const tagNames = [...(employee.tags || []).map((tag) => tag.name), ...(employee.tagIds || []).map((tagId) => tagsById.get(tagId))].filter(Boolean);
+        return tagNames.some((tagName) => rosterTags.has(tagName));
+      });
+      const dayShifts = (state.shifts || []).filter((shift) => dateOnly(shift.startsAt) === dateKey);
+      const availableEmployees = employees.filter((employee) => !dayShifts.some((shift) => shift.employeeId === employee.id));
+      const modal = document.createElement("div");
+      modal.className = "modal-backdrop";
+      modal.innerHTML = `<div class="modal-panel shift-modal-panel">
+        <div class="modal-head"><strong>設定 ${dateKey} 排班</strong></div>
+        <div class="modal-body"><div class="modal-space">
+          ${employees.length === 0 ? `<div class="alert warning">請先到員工管理設定內部員工或外部員工 TAG。</div>` : ""}
+          ${dayShifts.length ? `<div class="shift-existing-list">
+            <strong>當日已排班</strong>
+            ${dayShifts.map((shift) => `<div class="shift-existing-row"><span>${relationLabel("employees", shift.employeeId) || "備註"} · ${shift.type === "CHARITY" ? "公益服務" : "現場服務"}</span><button class="icon-btn danger" type="button" aria-label="刪除" title="刪除">×</button></div>`).join("")}
+          </div>` : ""}
+          <div>
+            <strong>員工</strong>
+            <div class="shift-select-wrap">
+              <div class="shift-employee-select" id="shiftEmployeeSelect"><span class="shift-select-placeholder">${availableEmployees.length ? "請選擇" : ""}</span></div>
+              <div class="shift-select-dropdown" id="shiftEmployeeDropdown">${availableEmployees.map((employee) => `<button class="shift-select-option" type="button" data-employee-id="${employee.id}" data-employee-label="${employee.role ? `${employee.name}（${employee.role}）` : employee.name}">${employee.role ? `${employee.name}（${employee.role}）` : employee.name}</button>`).join("")}</div>
+            </div>
+          </div>
+          <div>
+            <strong>備註</strong>
+            <textarea rows="2" placeholder="非必填" style="margin-top:6px"></textarea>
+          </div>
+        </div>
+        </div>
+        <div class="modal-foot"><button id="shiftCancelBtn">取消</button><button class="primary" id="shiftSaveBtn">新增</button></div>
+      </div>`;
+      document.body.appendChild(modal);
+      const selectedEmployeeIds = new Set();
+      const selectBox = modal.querySelector("#shiftEmployeeSelect");
+      const dropdown = modal.querySelector("#shiftEmployeeDropdown");
+      const renderSelectedEmployees = () => {
+        const selectedOptions = [...modal.querySelectorAll(".shift-select-option.selected")];
+        selectBox.innerHTML = selectedOptions.length
+          ? selectedOptions.map((option) => `<span class="shift-select-tag">${option.dataset.employeeLabel}</span>`).join("")
+          : `<span class="shift-select-placeholder">${availableEmployees.length ? "請選擇" : ""}</span>`;
+      };
+      selectBox.onclick = () => {
+        selectBox.classList.toggle("open");
+        dropdown.classList.toggle("open");
+      };
+      modal.querySelector(".modal-panel").addEventListener("click", (event) => {
+        if (event.target.closest(".shift-select-wrap")) return;
+        selectBox.classList.remove("open");
+        dropdown.classList.remove("open");
+      });
+      dropdown.querySelectorAll(".shift-select-option").forEach((option) => {
+        option.onclick = (event) => {
+          event.stopPropagation();
+          const employeeId = option.dataset.employeeId;
+          if (selectedEmployeeIds.has(employeeId)) selectedEmployeeIds.delete(employeeId);
+          else selectedEmployeeIds.add(employeeId);
+          option.classList.toggle("selected", selectedEmployeeIds.has(employeeId));
+          renderSelectedEmployees();
+          selectBox.classList.remove("open");
+          dropdown.classList.remove("open");
+        };
+      });
+      modal.querySelector("#shiftCancelBtn").onclick = () => modal.remove();
+      modal.querySelector("#shiftSaveBtn").onclick = () => modal.remove();
+    }
+    function addShiftRangeNote() {
+      const modal = document.createElement("div");
+      modal.className = "modal-backdrop";
+      modal.innerHTML = `<div class="modal-panel shift-modal-panel">
+        <div class="modal-head"><strong>新增區間備註</strong></div>
+        <div class="modal-body"><div class="modal-space">
+          <div>
+            <strong>日期區間</strong>
+            <div class="row" style="margin-top:6px;gap:8px;flex-wrap:nowrap">
+              <input type="date" value="${shiftMonth}-01">
+              <input type="date" value="${shiftMonth}-01">
+            </div>
+          </div>
+          <div>
+            <strong>備註</strong>
+            <textarea rows="2" placeholder="請填寫備註" style="margin-top:6px"></textarea>
+          </div>
+        </div></div>
+        <div class="modal-foot"><button id="rangeCancelBtn">取消</button><button class="primary" id="rangeSaveBtn">新增</button></div>
+      </div>`;
+      document.body.appendChild(modal);
+      modal.querySelector("#rangeCancelBtn").onclick = () => modal.remove();
+      modal.querySelector("#rangeSaveBtn").onclick = () => modal.remove();
+    }
+    function openGoalModal({ title, value, onSave }) {
+      const modal = document.createElement("div");
+      modal.className = "modal-backdrop";
+      modal.innerHTML = `<div class="modal-panel shift-modal-panel">
+        <div class="modal-head"><strong>${title}</strong></div>
+        <div class="modal-body">
+          <label>目標金額<input id="goalAmountInput" type="number" min="0" value="${Number(value || 0)}"></label>
+        </div>
+        <div class="modal-foot"><button id="goalCancelBtn">取消</button><button class="primary" id="goalSaveBtn">儲存</button></div>
+      </div>`;
+      document.body.appendChild(modal);
+      const input = modal.querySelector("#goalAmountInput");
+      input.focus();
+      modal.querySelector("#goalCancelBtn").onclick = () => modal.remove();
+      modal.querySelector("#goalSaveBtn").onclick = () => {
+        const next = Number(input.value || 0);
+        if (next >= 0) onSave(next);
+        modal.remove();
+        render();
+      };
+    }
+    function editShiftRangeNote(idsText) {
+      const ids = String(idsText || "").split(",").filter(Boolean);
+      const rows = (state.shifts || []).filter((shift) => ids.includes(shift.id));
+      if (!rows.length) return;
+      const currentNote = String(rows[0].notes || "");
+      const nextNote = prompt("備註", currentNote);
+      if (nextNote === null) return;
+      if (!nextNote.trim()) {
+        if (!confirm("備註為空，是否刪除這段備註？")) return;
+        state.shifts = (state.shifts || []).filter((shift) => !ids.includes(shift.id));
+      } else {
+        state.shifts = (state.shifts || []).map((shift) => ids.includes(shift.id) ? { ...shift, notes: nextNote.trim() } : shift);
+      }
+      save();
+      render();
+    }
+    function renderShiftsCalendar() {
+      const weekdayLabels = ["日", "一", "二", "三", "四", "五", "六"];
+      const rosterTags = new Set(["內部員工", "外部員工"]);
+      const employees = state.employees || [];
+      const tagsById = new Map((state["employee-tags"] || []).map((tag) => [tag.id, tag.name]));
+      const employeesById = new Map(employees.map((employee) => [employee.id, employee]));
+      const eligibleEmployees = employees.filter((employee) => {
+        if (employee.active === false) return false;
+        const tagNames = [...(employee.tags || []).map((tag) => tag.name), ...(employee.tagIds || []).map((tagId) => tagsById.get(tagId))].filter(Boolean);
+        return tagNames.some((tagName) => rosterTags.has(tagName));
+      });
+      const monthShiftRows = (state.shifts || []).filter((shift) => dateOnly(shift.startsAt).startsWith(shiftMonth));
+      const recordsByDate = monthShiftRows.reduce((map, shift) => {
+        const dateKey = dateOnly(shift.startsAt);
+        map.set(dateKey, [...(map.get(dateKey) || []), shift]);
+        return map;
+      }, new Map());
+      for (const shifts of recordsByDate.values()) {
+        shifts.sort((left, right) => relationLabel("employees", left.employeeId).localeCompare(relationLabel("employees", right.employeeId)));
+      }
+      const workdayMap = new Map();
+      for (const shift of monthShiftRows) {
+        if (!shift.employeeId) continue;
+        const employee = employeesById.get(shift.employeeId);
+        const current = workdayMap.get(shift.employeeId) || { name: employee?.name || shift.employeeId, days: new Set(), category: employee?.role?.includes("兼職") ? "兼職" : employee?.role?.includes("正職") ? "正職" : "其他" };
+        current.days.add(dateOnly(shift.startsAt));
+        workdayMap.set(shift.employeeId, current);
+      }
+      const groups = ["正職", "兼職", "其他"].map((label) => ({
+        label,
+        items: [...workdayMap.entries()]
+          .map(([employeeId, value]) => ({ employeeId, name: value.name, count: value.days.size, category: value.category }))
+          .filter((item) => item.category === label)
+          .sort((left, right) => right.count - left.count || left.name.localeCompare(right.name))
+      })).filter((group) => group.items.length > 0);
+      const [year, monthNumber] = shiftMonth.split("-").map(Number);
+      const leadingEmptyDays = new Date(year, monthNumber - 1, 1).getDay();
+      const dayCount = daysInMonth(shiftMonth);
+      const cellCount = Math.ceil((leadingEmptyDays + dayCount) / 7) * 7;
+      const cells = Array.from({ length: cellCount }, (_, index) => {
+        const day = index - leadingEmptyDays + 1;
+        return day >= 1 && day <= dayCount ? day : null;
+      });
+      const weeks = Array.from({ length: cells.length / 7 }, (_, index) => cells.slice(index * 7, index * 7 + 7));
+      const dateIndexByKey = new Map();
+      cells.forEach((day, index) => {
+        if (day) dateIndexByKey.set(dateAt(shiftMonth, day), index);
+      });
+      const datesByNote = new Map();
+      for (const shift of monthShiftRows) {
+        const note = String(shift.notes || "").trim();
+        const dateKey = dateOnly(shift.startsAt);
+        if (!note || !dateIndexByKey.has(dateKey)) continue;
+        const noteDates = datesByNote.get(note) || new Map();
+        noteDates.set(dateKey, [...(noteDates.get(dateKey) || []), shift.id]);
+        datesByNote.set(note, noteDates);
+      }
+      const segmentsByWeek = new Map();
+      const rangeNoteDateKeys = new Set();
+      for (const [note, dateRecords] of datesByNote.entries()) {
+        const sortedDates = [...dateRecords.keys()].sort();
+        let rangeStart = sortedDates[0];
+        let previousDate = sortedDates[0];
+        const addRange = (startDate, endDate) => {
+          if (!startDate || !endDate) return;
+          const startIndex = dateIndexByKey.get(startDate);
+          const endIndex = dateIndexByKey.get(endDate);
+          if (startIndex === undefined || endIndex === undefined || endIndex <= startIndex) return;
+          const recordIds = [];
+          for (let index = startIndex; index <= endIndex; index += 1) {
+            const day = cells[index];
+            if (!day) continue;
+            const dateKey = dateAt(shiftMonth, day);
+            rangeNoteDateKeys.add(`${dateKey}::${note}`);
+            recordIds.push(...(dateRecords.get(dateKey) || []));
+          }
+          const startWeek = Math.floor(startIndex / 7);
+          const endWeek = Math.floor(endIndex / 7);
+          for (let weekIndex = startWeek; weekIndex <= endWeek; weekIndex += 1) {
+            const segmentStartColumn = weekIndex === startWeek ? startIndex % 7 : 0;
+            const segmentEndColumn = weekIndex === endWeek ? endIndex % 7 : 6;
+            const weekSegments = segmentsByWeek.get(weekIndex) || [];
+            const usedRows = [];
+            for (const segment of weekSegments) {
+              usedRows[segment.row] ||= Array.from({ length: 7 }, () => false);
+              for (let column = segment.startColumn; column < segment.startColumn + segment.span; column += 1) usedRows[segment.row][column] = true;
+            }
+            let row = 0;
+            while ((usedRows[row] || []).some((isUsed, column) => isUsed && column >= segmentStartColumn && column <= segmentEndColumn)) row += 1;
+            weekSegments.push({ note, startDate, endDate, recordIds, startColumn: segmentStartColumn, span: segmentEndColumn - segmentStartColumn + 1, row });
+            segmentsByWeek.set(weekIndex, weekSegments);
+          }
+        };
+        for (const dateKey of sortedDates.slice(1)) {
+          if (dateKey === nextDateKey(previousDate)) {
+            previousDate = dateKey;
+            continue;
+          }
+          addRange(rangeStart, previousDate);
+          rangeStart = dateKey;
+          previousDate = dateKey;
+        }
+        addRange(rangeStart, previousDate);
+      }
+      const showNotes = shiftDisplayMode === "ALL" || shiftDisplayMode === "NOTES";
+      const showEmployees = shiftDisplayMode === "ALL" || shiftDisplayMode === "EMPLOYEES";
+      dashboard.innerHTML = `<div class="card">
+        <div class="shift-calendar-toolbar">
+          <div class="row"><strong>月份</strong><input type="month" id="shiftMonthInput" value="${shiftMonth}"><button id="shiftRangeBtn">區間備註</button></div>
+          <div class="segmented">
+            <button class="${shiftDisplayMode === "ALL" ? "active" : ""}" data-shift-mode="ALL">備註＋人員</button>
+            <button class="${shiftDisplayMode === "NOTES" ? "active" : ""}" data-shift-mode="NOTES">只顯示備註</button>
+            <button class="${shiftDisplayMode === "EMPLOYEES" ? "active" : ""}" data-shift-mode="EMPLOYEES">只顯示人員</button>
+          </div>
+        </div>
+        <div class="shift-workday-summary">
+          <strong>員工上班天數</strong>
+          ${workdayMap.size > 0 ? `<div class="shift-workday-groups">${groups.map((group) => `<div class="shift-workday-group"><span class="muted">${group.label}</span><div class="shift-workday-list">${group.items.map((employee) => `<span class="shift-workday-chip"><span>${employee.name}</span><strong>${employee.count} 天</strong></span>`).join("")}</div></div>`).join("")}</div>` : `<span class="muted">本月尚無排班</span>`}
+        </div>
+        <div class="shift-calendar-grid">
+          ${weekdayLabels.map((weekday) => `<div class="shift-weekday-cell">星期${weekday}</div>`).join("")}
+          ${weeks.map((week, weekIndex) => {
+            const rangeSegments = segmentsByWeek.get(weekIndex) || [];
+            const rangeRowCount = rangeSegments.reduce((max, segment) => Math.max(max, segment.row + 1), 0);
+            return `<div class="shift-calendar-week" style="--range-note-rows:${showNotes ? rangeRowCount : 0}">
+              ${showNotes ? rangeSegments.map((segment) => `<button class="shift-range-note-bar" type="button" title="${segment.note}" style="--range-start:${segment.startColumn};--range-span:${segment.span};--range-row:${segment.row}" data-shift-range-note="${segment.recordIds.join(",")}">${segment.note}</button>`).join("") : ""}
+              ${week.map((day) => {
+                if (!day) return `<div class="shift-calendar-empty-cell"></div>`;
+                const dateKey = dateAt(shiftMonth, day);
+                const shifts = recordsByDate.get(dateKey) || [];
+                const employeeShifts = shifts.filter((shift) => shift.employeeId);
+                const noteRows = [...shifts.reduce((map, shift) => {
+                  const note = String(shift.notes || "").trim();
+                  if (!note || rangeNoteDateKeys.has(`${dateKey}::${note}`)) return map;
+                  map.set(note, [...(map.get(note) || []), shift.id]);
+                  return map;
+                }, new Map()).entries()];
+                return `<div class="shift-calendar-day">
+                  <span class="shift-calendar-day-header"><span class="shift-calendar-date">${day}</span><button class="shift-add-button" data-shift-add="${dateKey}" aria-label="新增 ${dateKey} 排班" title="新增排班">＋</button></span>
+                  ${showNotes && rangeRowCount > 0 ? `<span class="shift-range-note-spacer"></span>` : ""}
+                  ${showNotes && noteRows.length > 0 ? `<span class="shift-notes">${noteRows.map(([note, ids]) => `<button type="button" title="${note}" data-shift-range-note="${ids.join(",")}">${note}</button>`).join("")}</span>` : ""}
+                  ${showEmployees ? `<span class="shift-tags">${employeeShifts.map((shift) => `<span class="shift-tag${shift.type === "CHARITY" ? " charity" : ""}">${relationLabel("employees", shift.employeeId) || shift.employeeId}</span>`).join("")}</span>` : ""}
+                </div>`;
+              }).join("")}
+            </div>`;
+          }).join("")}
+        </div>
+      </div>`;
+      document.getElementById("shiftMonthInput")?.addEventListener("change", (event) => {
+        shiftMonth = event.target.value || defaultMonth;
+        render();
+      });
+      document.getElementById("shiftRangeBtn")?.addEventListener("click", addShiftRangeNote);
+      dashboard.querySelectorAll("[data-shift-mode]").forEach((button) => button.addEventListener("click", () => {
+        shiftDisplayMode = button.dataset.shiftMode;
+        render();
+      }));
+      dashboard.querySelectorAll("[data-shift-add]").forEach((button) => button.addEventListener("click", () => addShiftForDate(button.dataset.shiftAdd)));
+      dashboard.querySelectorAll("[data-shift-range-note]").forEach((button) => button.addEventListener("click", () => editShiftRangeNote(button.dataset.shiftRangeNote)));
+      formCard.classList.add("hidden");
+      tableCard.classList.add("hidden");
+    }
+    function renderDashboard() {
+      const sales = state.sales || [];
+      const month = defaultMonth;
+      const todayRevenue = sales.filter((sale) => dateOnly(sale.soldAt) === today).reduce((sum, sale) => sum + Number(sale.total || 0), 0);
+      const monthRevenue = sales.filter((sale) => dateOnly(sale.soldAt).slice(0, 7) === month).reduce((sum, sale) => sum + Number(sale.total || 0), 0);
+      const dailyGoalKey = `dashboard.dailyRevenueGoal.${today}`;
+      const dailyGoal = Number(localStorage.getItem(dailyGoalKey) || 20000);
+      const monthlyGoal = Number(localStorage.getItem("dashboard.monthlyRevenueGoal") || 600000);
+      const dailyPercent = dailyGoal > 0 ? (todayRevenue / dailyGoal) * 100 : 0;
+      const monthlyPercent = monthlyGoal > 0 ? (monthRevenue / monthlyGoal) * 100 : 0;
+      const [year, monthNumber] = month.split("-").map(Number);
+      const days = new Date(year, monthNumber, 0).getDate();
+      const dailyRevenueBars = Array.from({ length: days }, (_, index) => {
+        const day = index + 1;
+        const date = `${month}-${String(day).padStart(2, "0")}`;
+        return {
+          date,
+          day,
+          revenue: sales.filter((sale) => dateOnly(sale.soldAt) === date).reduce((sum, sale) => sum + Number(sale.total || 0), 0)
+        };
+      });
+      const maxDailyRevenue = Math.max(...dailyRevenueBars.map((item) => item.revenue), 1);
+      const itemMap = new Map();
+      for (const sale of sales.filter((sale) => dateOnly(sale.soldAt).slice(0, 7) === month)) {
+        for (const line of sale.lines || []) {
+          const item = byId("items", line.itemId) || {};
+          const key = line.itemId || item.name || "unknown";
+          const current = itemMap.get(key) || {
+            itemName: item.name || "未命名品項",
+            itemType: item.type || "OTHER",
+            quantity: 0,
+            revenue: 0
+          };
+          current.quantity += Number(line.quantity || 0);
+          current.revenue += Number(line.lineTotal || Number(line.unitPrice || 0) * Number(line.quantity || 0));
+          itemMap.set(key, current);
+        }
+      }
+      const totalItemRevenue = [...itemMap.values()].reduce((sum, item) => sum + item.revenue, 0);
+      const typeRevenueShares = [...itemMap.values()].reduce((map, item) => {
+        const current = map.get(item.itemType) || { itemType: item.itemType, quantity: 0, revenue: 0, share: 0, items: [] };
+        const itemShare = totalItemRevenue > 0 ? (item.revenue / totalItemRevenue) * 100 : 0;
+        current.quantity += item.quantity;
+        current.revenue += item.revenue;
+        current.items.push({ ...item, share: itemShare });
+        map.set(item.itemType, current);
+        return map;
+      }, new Map());
+      const chartColors = ["#0b7f95", "#2fa6c6", "#72c6dd", "#f0a35e", "#d97745", "#7aa874", "#8b8ed8", "#b07ac4", "#e08aa4", "#7d95a6"];
+      const chartItems = [...typeRevenueShares.values()]
+        .map((item) => ({ ...item, share: totalItemRevenue > 0 ? (item.revenue / totalItemRevenue) * 100 : 0, items: item.items.sort((a, b) => b.revenue - a.revenue) }))
+        .sort((a, b) => b.revenue - a.revenue)
+        .slice(0, 10);
+      const activePieItem = chartItems[0];
+      const circumference = 2 * Math.PI * 44;
+      let pieOffset = 0;
+      const pieSegments = chartItems.map((item, index) => {
+        const segmentLength = Math.max((item.share / 100) * circumference, 0.4);
+        const segment = `<circle class="revenue-share-pie-segment" data-share-index="${index}" cx="60" cy="60" r="44" stroke="${chartColors[index % chartColors.length]}" stroke-dasharray="${segmentLength} ${circumference - segmentLength}" stroke-dashoffset="${-pieOffset}"><title>${labels[item.itemType] || item.itemType} ${item.share.toFixed(1)}%</title></circle>`;
+        pieOffset += segmentLength;
+        return segment;
+      }).join("");
+      const revenueRows = chartItems.map((item, index) => {
+        const color = chartColors[index % chartColors.length];
+        const isCollapsed = index === 0 ? collapsedRevenueShareTypes.has(item.itemType) : !collapsedRevenueShareTypes.has(item.itemType);
+        const childRows = item.items.map((revenueItem) => `<div class="revenue-share-row revenue-share-child-row"><div></div><div class="revenue-share-meta"><span>${revenueItem.itemName}</span><small class="muted">${revenueItem.quantity} 件</small></div><div class="revenue-share-track"><div class="revenue-share-bar" style="width:${Math.max(revenueItem.share, 1)}%; background:${color}"></div></div><div class="revenue-share-value"><span>${money(revenueItem.revenue)}</span><small class="muted">${revenueItem.share.toFixed(1)}%</small></div></div>`).join("");
+        return `<div class="revenue-share-item-list"><div class="revenue-share-row interactive" data-share-index="${index}" data-share-toggle="${item.itemType}"><div class="revenue-share-rank" style="background:${color}">${index + 1}</div><div class="revenue-share-meta"><strong>${isCollapsed ? "▸" : "▾"} ${labels[item.itemType] || item.itemType}</strong><small class="muted">${item.quantity} 件</small></div><div class="revenue-share-track"><div class="revenue-share-bar" style="width:${Math.max(item.share, 1)}%; background:${color}"></div></div><div class="revenue-share-value"><strong>${money(item.revenue)}</strong><small class="muted">${item.share.toFixed(1)}%</small></div></div>${isCollapsed ? "" : childRows}</div>`;
+      }).join("");
+      dashboard.innerHTML = `<div class="dashboard-card-grid">
+        <div class="card"><div class="dashboard-daily-card"><div class="dashboard-daily-header"><div><div class="statistic-title">今日營收</div><div class="statistic-value">${money(todayRevenue)}</div></div><input class="small-input" type="date" value="${today}" disabled></div><div class="dashboard-goal-progress"><div class="dashboard-goal-line"><span class="muted">目標：${money(dailyGoal)}</span><button class="small-btn" id="dailyGoalBtn">設定目標</button></div><div class="progress"><span style="width:${Math.min(dailyPercent, 100).toFixed(1)}%"></span></div><div class="progress-text">${dailyPercent.toFixed(1)}%</div></div></div></div>
+        <div class="card"><div class="dashboard-goal-card"><div class="dashboard-goal-header"><div><div class="statistic-title">本月營收累積</div><div class="statistic-value">${money(monthRevenue)}</div></div></div><div class="dashboard-goal-progress"><div class="dashboard-goal-line"><span class="muted">目標：${money(monthlyGoal)}</span><button class="small-btn" id="monthlyGoalBtn">設定目標</button></div><div class="progress"><span style="width:${Math.min(monthlyPercent, 100).toFixed(1)}%"></span></div><div class="progress-text">${monthlyPercent.toFixed(1)}%</div></div></div></div>
+      </div>
+      <div class="card"><h3>每日營收</h3><div class="daily-revenue-chart" role="img" aria-label="本月每日營收長條圖">${dailyRevenueBars.map((item) => `<button class="daily-revenue-bar-cell" title="${item.date}：${money(item.revenue)}" type="button"><div class="daily-revenue-bar-wrap"><div class="daily-revenue-bar" style="height:${Math.max((item.revenue / maxDailyRevenue) * 100, item.revenue > 0 ? 4 : 0)}%"></div></div><span class="daily-revenue-day">${item.day}</span></button>`).join("")}</div></div>
+      <div class="card"><h3>出售類型營收占比</h3>${chartItems.length === 0 ? `<div class="empty">尚無本月銷售資料</div>` : `<div class="revenue-share-layout"><div class="revenue-share-pie-panel"><div class="revenue-share-pie-wrap"><svg class="revenue-share-pie" viewBox="0 0 120 120" role="img" aria-label="出售類型營收占比圓餅圖"><circle class="revenue-share-pie-bg" cx="60" cy="60" r="44"></circle>${pieSegments}</svg><div class="revenue-share-pie-center"><strong id="revenueShareCenterLabel">${activePieItem ? labels[activePieItem.itemType] || activePieItem.itemType : ""}</strong><h2 id="revenueShareCenterPercent">${activePieItem ? activePieItem.share.toFixed(1) : "0.0"}%</h2></div></div><span class="muted">滑鼠移到區塊可查看類型與占比</span></div><div class="revenue-share-chart">${revenueRows}</div></div>`}</div>`;
+      document.getElementById("dailyGoalBtn")?.addEventListener("click", () => {
+        openGoalModal({ title: `${today} 營收目標`, value: dailyGoal, onSave: (next) => localStorage.setItem(dailyGoalKey, String(next)) });
+      });
+      document.getElementById("monthlyGoalBtn")?.addEventListener("click", () => {
+        openGoalModal({ title: "設定本月營收目標", value: monthlyGoal, onSave: (next) => localStorage.setItem("dashboard.monthlyRevenueGoal", String(next)) });
+      });
+      const setRevenueShareHover = (index) => {
+        const item = chartItems[index] || chartItems[0];
+        if (!item) return;
+        const centerLabel = document.getElementById("revenueShareCenterLabel");
+        const centerPercent = document.getElementById("revenueShareCenterPercent");
+        if (centerLabel) centerLabel.textContent = labels[item.itemType] || item.itemType;
+        if (centerPercent) centerPercent.textContent = `${item.share.toFixed(1)}%`;
+        dashboard.querySelectorAll(".revenue-share-pie-segment").forEach((segment) => {
+          segment.classList.toggle("is-dimmed", Number(segment.dataset.shareIndex) !== index);
+        });
+      };
+      dashboard.querySelectorAll("[data-share-index]").forEach((element) => {
+        element.addEventListener("mouseenter", () => setRevenueShareHover(Number(element.dataset.shareIndex || 0)));
+      });
+      dashboard.querySelectorAll("[data-share-toggle]").forEach((element) => {
+        element.addEventListener("click", () => {
+          const type = element.dataset.shareToggle;
+          const index = Number(element.dataset.shareIndex || 0);
+          const currentlyCollapsed = index === 0 ? collapsedRevenueShareTypes.has(type) : !collapsedRevenueShareTypes.has(type);
+          if (index === 0) {
+            if (currentlyCollapsed) collapsedRevenueShareTypes.delete(type);
+            else collapsedRevenueShareTypes.add(type);
+          } else {
+            if (currentlyCollapsed) collapsedRevenueShareTypes.add(type);
+            else collapsedRevenueShareTypes.delete(type);
+          }
+          render();
+        });
+      });
+      dashboard.querySelector(".revenue-share-layout")?.addEventListener("mouseleave", () => {
+        dashboard.querySelectorAll(".revenue-share-pie-segment").forEach((segment) => segment.classList.remove("is-dimmed"));
+        setRevenueShareHover(0);
+      });
+      formCard.classList.add("hidden");
+      tableCard.classList.add("hidden");
+    }
+    function renderReport() {
+      const month = reportMonth;
+      const previousMonthDate = new Date(`${month}-01T00:00:00`);
+      previousMonthDate.setMonth(previousMonthDate.getMonth() - 1);
+      const previousMonth = previousMonthDate.toISOString().slice(0, 7);
+      const employeeTags = ["內部員工", "外部員工"];
+      const shiftIncomeEmployeeTag = "外部員工";
+      const fixedSalaryPurposes = new Set(["正職人員薪資", "兼職人員薪資"]);
+      const tagNameById = new Map((state["employee-tags"] || []).map((tag) => [tag.id, tag.name]));
+      const employeeById = new Map((state.employees || []).map((employee) => [employee.id, employee]));
+      const employeeTagNames = (employee) => [...(employee?.tags || []).map((tag) => tag.name), ...(employee?.tagIds || []).map((tagId) => tagNameById.get(tagId))].filter(Boolean);
+      const employeeTypeFromTags = (employee) => employeeTags.find((tag) => employeeTagNames(employee).includes(tag));
+      const calculateCommission = (itemType, lineRevenue, quantity) => {
+        if (itemType === "DIVINATION_SERVICE") return lineRevenue * 0.5;
+        if (itemType === "RITUAL_SERVICE") return lineRevenue * 0.3;
+        if (itemType === "FENG_SHUI_SERVICE") return lineRevenue * 0.5;
+        if (itemType === "COURSE_SERVICE") return quantity * 2000;
+        if (itemType === "PHYSICAL_PRODUCT") return lineRevenue * 0.3;
+        return 0;
+      };
+      const monthSales = (state.sales || []).filter((sale) => sale.status !== "VOID" && dateOnly(sale.soldAt).slice(0, 7) === month);
+      const previousSales = (state.sales || []).filter((sale) => sale.status !== "VOID" && dateOnly(sale.soldAt).slice(0, 7) === previousMonth);
+      const pettyCash = (state["petty-cash"] || []).filter((entry) => dateOnly(entry.entryDate).slice(0, 7) === month);
+      const fixedExpenses = (state["fixed-expenses"] || []).filter((entry) => dateOnly(entry.entryDate).slice(0, 7) === month);
+      const shifts = (state.shifts || []).filter((shift) => dateOnly(shift.startsAt).slice(0, 7) === month);
+      const revenue = monthSales.reduce((sum, sale) => sum + Number(sale.total || 0), 0);
+      const previousMonthRevenue = previousSales.reduce((sum, sale) => sum + Number(sale.total || 0), 0);
+      const revenueMonthlyChangeRate = previousMonthRevenue > 0 ? ((revenue - previousMonthRevenue) / previousMonthRevenue) * 100 : null;
+      const pettyExpense = pettyCash.filter((entry) => entry.type === "EXPENSE").reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
+      const itemAnalysis = new Map();
+      const itemTypeAnalysis = new Map();
+      const previousItemTypeRevenue = new Map();
+      const paymentMethodAnalysis = new Map();
+      const activityAnalysis = new Map();
+      const employeePayouts = new Map();
+      const serviceCommissions = new Map();
+      const payoutForEmployee = (employee, employeeType) => {
+        const current = employeePayouts.get(employee.id) || { employeeId: employee.id, employeeName: employee.name, employeeType: employeeType || "未分類", fixedSalaryIncome: 0, shiftDays: new Set(), shiftIncome: 0, commissionItems: new Map() };
+        if (employeeType) current.employeeType = employeeType;
+        employeePayouts.set(employee.id, current);
+        return current;
+      };
+      for (const sale of monthSales) {
+        const payment = paymentMethodAnalysis.get(sale.paymentMethod) || { paymentMethod: sale.paymentMethod, revenue: 0 };
+        payment.revenue += Number(sale.total || 0);
+        paymentMethodAnalysis.set(sale.paymentMethod, payment);
+        const servicePerson = employeeById.get(sale.servicePersonId);
+        for (const line of sale.lines || []) {
+          const item = byId("items", line.itemId) || {};
+          const lineRevenue = Number(line.lineTotal || Number(line.unitPrice || 0) * Number(line.quantity || 0));
+          const itemCurrent = itemAnalysis.get(line.itemId) || { name: item.name || "未命名品項", type: item.type || "OTHER", quantity: 0, revenue: 0 };
+          itemCurrent.quantity += Number(line.quantity || 0);
+          itemCurrent.revenue += lineRevenue;
+          itemAnalysis.set(line.itemId, itemCurrent);
+          const typeCurrent = itemTypeAnalysis.get(itemCurrent.type) || { type: itemCurrent.type, revenue: 0, revenueRate: 0 };
+          typeCurrent.revenue += lineRevenue;
+          itemTypeAnalysis.set(itemCurrent.type, typeCurrent);
+          if (item.eventId) {
+            const event = byId("events", item.eventId);
+            const activity = activityAnalysis.get(item.eventId) || { eventId: item.eventId, eventName: event?.title || item.eventId, revenue: 0, revenueRate: 0 };
+            activity.revenue += lineRevenue;
+            activityAnalysis.set(item.eventId, activity);
+          }
+          if (servicePerson) {
+            const employeeType = employeeTypeFromTags(servicePerson);
+            const commission = calculateCommission(itemCurrent.type, lineRevenue, Number(line.quantity || 0));
+            if (employeeType && commission > 0) {
+              const commissionCurrent = serviceCommissions.get(servicePerson.id) || { employeeId: servicePerson.id, employeeName: servicePerson.name, employeeType, serviceRevenue: 0, commission: 0 };
+              commissionCurrent.serviceRevenue += lineRevenue;
+              commissionCurrent.commission += commission;
+              serviceCommissions.set(servicePerson.id, commissionCurrent);
+              const payout = payoutForEmployee(servicePerson, employeeType);
+              const itemCommission = payout.commissionItems.get(line.itemId) || { itemName: itemCurrent.name, serviceRevenue: 0, commission: 0 };
+              itemCommission.serviceRevenue += lineRevenue;
+              itemCommission.commission += commission;
+              payout.commissionItems.set(line.itemId, itemCommission);
+            }
+          }
+        }
+      }
+      for (const sale of previousSales) {
+        for (const line of sale.lines || []) {
+          const item = byId("items", line.itemId) || {};
+          previousItemTypeRevenue.set(item.type, (previousItemTypeRevenue.get(item.type) || 0) + Number(line.lineTotal || 0));
+        }
+      }
+      const fixedExpenseAnalysis = fixedExpenses.map((expense) => ({ id: expense.id, purpose: expense.purpose, amount: Number(expense.amount || 0), entryDate: expense.entryDate, employeeName: relationLabel("employees", expense.employeeId) }));
+      for (const expense of fixedExpenses) {
+        const employee = employeeById.get(expense.employeeId);
+        if (!employee || !fixedSalaryPurposes.has(expense.purpose)) continue;
+        const employeeType = employeeTypeFromTags(employee);
+        if (!employeeType) continue;
+        payoutForEmployee(employee, employeeType).fixedSalaryIncome += Number(expense.amount || 0);
+      }
+      const shiftDaysByEmployee = new Map();
+      for (const shift of shifts) {
+        const employee = employeeById.get(shift.employeeId);
+        if (!employee || !employeeTagNames(employee).includes(shiftIncomeEmployeeTag)) continue;
+        const current = shiftDaysByEmployee.get(employee.id) || { employeeId: employee.id, employeeName: employee.name, employeeType: shiftIncomeEmployeeTag, days: new Set() };
+        current.days.add(dateOnly(shift.startsAt));
+        shiftDaysByEmployee.set(employee.id, current);
+        payoutForEmployee(employee, shiftIncomeEmployeeTag).shiftDays.add(dateOnly(shift.startsAt));
+      }
+      const shiftIncomeAnalysis = [...shiftDaysByEmployee.values()].map((employee) => ({ ...employee, days: employee.days.size, income: employee.days.size * 1000 }));
+      const fixedExpenseSystemSalaryAnalysis = shiftIncomeAnalysis.map((employee) => ({ id: `system-external-salary-${month}-${employee.employeeId}`, purpose: `外部員工排班薪資（${employee.days} 天）`, amount: employee.income, entryDate: `${month}-${String(daysInMonth(month)).padStart(2, "0")}`, employeeName: employee.employeeName }));
+      const monthlyFixedExpenseAnalysis = [...fixedExpenseAnalysis, ...fixedExpenseSystemSalaryAnalysis];
+      const fixedExpenseTotal = monthlyFixedExpenseAnalysis.reduce((sum, expense) => sum + expense.amount, 0);
+      const serviceCommissionTotal = [...serviceCommissions.values()].reduce((sum, employee) => sum + employee.commission, 0);
+      const employeePayoutAnalysis = [...employeePayouts.values()].map((employee) => {
+        const shiftDays = employee.shiftDays.size;
+        const shiftIncome = shiftDays * 1000;
+        const commissionItems = [...employee.commissionItems.values()].sort((a, b) => b.commission - a.commission);
+        const commissionTotal = commissionItems.reduce((sum, item) => sum + item.commission, 0);
+        return { employeeId: employee.employeeId, employeeName: employee.employeeName, employeeType: employee.employeeType, fixedSalaryIncome: employee.fixedSalaryIncome, shiftDays, shiftIncome, commissionItems, commissionTotal, payoutTotal: employee.fixedSalaryIncome + shiftIncome + commissionTotal };
+      }).filter((employee) => employee.payoutTotal > 0);
+      const monthlyProfit = revenue - fixedExpenseTotal - pettyExpense - serviceCommissionTotal;
+      const itemRows = [...itemAnalysis.values()].sort((a, b) => b.revenue - a.revenue);
+      const typeRows = [...itemTypeAnalysis.values()].map((item) => ({
+        ...item,
+        revenueRate: revenue > 0 ? (item.revenue / revenue) * 100 : 0,
+        previousRevenueRate: previousMonthRevenue > 0 ? ((previousItemTypeRevenue.get(item.type) || 0) / previousMonthRevenue) * 100 : null,
+        items: itemRows
+          .filter((row) => row.type === item.type)
+          .map((row) => ({ ...row, typeRevenueRate: item.revenue > 0 ? row.revenue / item.revenue * 100 : 0 }))
+      })).map((item) => ({ ...item, revenueRateChange: item.previousRevenueRate == null ? null : item.revenueRate - item.previousRevenueRate })).sort((a, b) => b.revenue - a.revenue);
+      const table = (columns, rows) => `<div class="table-wrap" style="max-height:none"><table><thead><tr>${columns.map((column) => `<th>${column[0]}</th>`).join("")}</tr></thead><tbody>${rows.map((row) => `<tr>${columns.map((column) => `<td>${column[1](row)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+      const renderItemTypeTable = () => `<div class="table-wrap" style="max-height:none"><table><thead><tr><th class="expand-cell"></th><th>類型</th><th>收入</th><th>營收占比</th></tr></thead><tbody>${typeRows.map((row) => {
+        const expanded = expandedReportTypes.has(row.type);
+        const childRows = expanded ? `<tr class="report-child-row"><td colspan="4"><div class="table-wrap report-child-table" style="max-height:none"><table><thead><tr><th>品項</th><th>收入</th><th>類型占比</th></tr></thead><tbody>${row.items.map((item) => `<tr><td>${item.name}<span class="muted"> x ${item.quantity}</span></td><td>${money(item.revenue)}</td><td>${item.typeRevenueRate.toFixed(1)}%</td></tr>`).join("")}</tbody></table></div></td></tr>` : "";
+        return `<tr><td class="expand-cell">${row.items.length ? `<button class="expand-btn" type="button" data-report-type="${row.type}" aria-label="${expanded ? "收合" : "展開"}">${expanded ? "−" : "+"}</button>` : ""}</td><td>${labels[row.type] || row.type}</td><td>${money(row.revenue)}</td><td>${row.revenueRate.toFixed(1)}%${row.revenueRateChange == null ? "<br><small class='muted'>上月無資料</small>" : `<br><small style='color:${row.revenueRateChange >= 0 ? "#cf1322" : "#389e0d"}'>較上月 ${row.revenueRateChange >= 0 ? "+" : ""}${row.revenueRateChange.toFixed(1)}%</small>`}</td></tr>${childRows}`;
+      }).join("")}</tbody></table></div>`;
+      dashboard.innerHTML = `<div class="card"><div class="row"><label>基準月份<input type="month" id="reportMonthInput" value="${month}"></label><button id="reportRefreshBtn">刷新</button></div></div>
+      <div class="dashboard-card-grid">
+        <div class="card"><div class="statistic-title">營收</div><div class="statistic-value">${money(revenue)}</div>${revenueMonthlyChangeRate == null ? `<div class="muted" style="margin-top:8px">上月無營收資料</div>` : `<div style="margin-top:8px;color:${revenueMonthlyChangeRate >= 0 ? "#cf1322" : "#389e0d"}">較上月${revenueMonthlyChangeRate >= 0 ? "增加" : "減少"} ${revenueMonthlyChangeRate >= 0 ? "+" : ""}${revenueMonthlyChangeRate.toFixed(1)}%</div>`}</div>
+        <div class="card"><div class="statistic-title">毛利</div><div class="statistic-value">${money(monthlyProfit)}</div></div>
+        <div class="card"><div class="statistic-title">固定支出與零用金總額</div><div class="statistic-value">${money(fixedExpenseTotal + pettyExpense)}</div></div>
+        <div class="card"><div class="statistic-title">服務分潤總額</div><div class="statistic-value">${money(serviceCommissionTotal)}</div></div>
+      </div>
+      <div class="card"><h3>付款方式金額加總</h3><div class="dashboard-card-grid">${[...paymentMethodAnalysis.values()].sort((a,b)=>b.revenue-a.revenue).map((payment) => `<div class="card"><div class="statistic-title">${labels[payment.paymentMethod] || payment.paymentMethod}</div><div class="statistic-value">${money(payment.revenue)}</div></div>`).join("") || `<div class="empty">尚無付款資料</div>`}</div></div>
+      <div class="card"><h3>品項類型營收占比</h3>${renderItemTypeTable()}</div>
+      <div class="card"><h3>活動分析</h3>${table([["活動名稱", row => row.eventName], ["活動總收入", row => money(row.revenue)], ["活動收入佔總營收", row => `${(revenue > 0 ? row.revenue / revenue * 100 : 0).toFixed(1)}%`]], [...activityAnalysis.values()].sort((a,b)=>b.revenue-a.revenue))}</div>
+      <div class="card"><h3>月固定支出 <span class="muted">加總：${money(fixedExpenseTotal)}</span></h3>${table([["日期", row => dateOnly(row.entryDate)], ["項目", row => row.purpose], ["對象", row => row.employeeName], ["金額", row => money(row.amount)]], monthlyFixedExpenseAnalysis)}</div>
+      <div class="card"><h3>月零用金支出 <span class="muted">加總：${money(pettyExpense)}</span></h3>${table([["日期", row => dateOnly(row.entryDate)], ["用途", row => row.purpose], ["代墊者", row => relationLabel("employees", row.employeeId)], ["金額", row => money(row.amount)]], pettyCash.filter((entry) => entry.type === "EXPENSE"))}</div>
+      <div><h3>員工出帳彙總</h3><div class="dashboard-card-grid">${employeePayoutAnalysis.map((employee) => `<div class="card"><h3>${employee.employeeName}收入 <small class="muted">${employee.employeeType}</small></h3><div class="report-lines">${employee.fixedSalaryIncome > 0 ? `<div class="dashboard-goal-line"><span>薪資</span><span>${money(employee.fixedSalaryIncome)}</span></div>` : ""}${employee.shiftIncome > 0 ? `<div class="dashboard-goal-line"><span>排班薪資（${employee.shiftDays} 天）</span><span>${money(employee.shiftIncome)}</span></div>` : ""}<strong>分潤</strong>${employee.commissionItems.length ? employee.commissionItems.map((item) => `<div class="dashboard-goal-line"><span>${item.itemName}</span><span>${money(item.commission)}</span></div>`).join("") : `<span class="muted">無服務分潤</span>`}<hr><div class="dashboard-goal-line"><strong>出帳加總</strong><strong>${money(employee.payoutTotal)}</strong></div></div></div>`).join("") || `<div class="empty">尚無員工出帳資料</div>`}</div></div>`;
+      document.getElementById("reportMonthInput")?.addEventListener("change", (event) => {
+        reportMonth = event.target.value || defaultMonth;
+        render();
+      });
+      document.getElementById("reportRefreshBtn")?.addEventListener("click", render);
+      dashboard.querySelectorAll("[data-report-type]").forEach((button) => button.addEventListener("click", () => {
+        const type = button.dataset.reportType;
+        if (expandedReportTypes.has(type)) expandedReportTypes.delete(type);
+        else expandedReportTypes.add(type);
+        render();
+      }));
+      formCard.classList.add("hidden");
+      tableCard.classList.add("hidden");
+    }
+    function defaultFor(type, name) {
+      if (type === "number") return 0;
+      if (type === "checkbox") return name === "active";
+      if (type === "date") return today;
+      if (type.startsWith("enum:")) return enumOptions[type.slice(5)][0][0];
+      return "";
+    }
+    function inputFor([name, label, type, options = {}], value) {
+      const required = options.required ? "required" : "";
+      const labelClass = options.required ? ` class="required-column-label"` : "";
+      if (type === "textarea") return `<label${labelClass}>${label}<textarea name="${name}" ${required}>${value || ""}</textarea></label>`;
+      if (type === "number") return `<label${labelClass}>${label}<input name="${name}" type="number" value="${Number(value || 0)}" ${required}></label>`;
+      if (type === "date") return `<label${labelClass}>${label}<input name="${name}" type="date" value="${dateOnly(value) || today}" ${required}></label>`;
+      if (type === "checkbox") return `<label${labelClass}>${label}<span class="check"><input name="${name}" type="checkbox" ${value ? "checked" : ""}>是</span></label>`;
+      if (type.startsWith("enum:")) return `<label${labelClass}>${label}<select name="${name}" ${required}>${enumOptions[type.slice(5)].map(([v, l]) => `<option value="${v}" ${value === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>`;
+      if (modules[type]) return `<label${labelClass}>${label}<select name="${name}" ${required}><option value="">未選擇</option>${(state[type] || []).map((row) => `<option value="${row.id}" ${value === row.id ? "selected" : ""}>${row.name || row.title || row.courseName || row.id}</option>`).join("")}</select></label>`;
+      return `<label${labelClass}>${label}<input name="${name}" value="${value || ""}" ${required}></label>`;
+    }
+    function renderSalesForm(row) {
+      if (editingId && salesLineRowsSourceId !== editingId) {
+        salesLineRows = (row.lines && row.lines.length ? row.lines : [{ itemId: "", quantity: 1, unitPrice: 0 }]).map((line) => ({
+          itemId: line.itemId || "",
+          servicePersonId: line.servicePersonId || row.servicePersonId || "",
+          quantity: Number(line.quantity || 1),
+          unitPrice: Number(line.unitPrice || (line.lineTotal && line.quantity ? Number(line.lineTotal) / Number(line.quantity) : byId("items", line.itemId)?.price || 0))
+        }));
+        salesLineRowsSourceId = editingId;
+      } else if (!editingId && salesLineRowsSourceId) {
+        salesLineRows = [{ itemId: "", servicePersonId: "", quantity: 1, unitPrice: 0 }];
+        salesLineRowsSourceId = "";
+      }
+      const itemOptions = (selectedId = "") => (state.items || []).filter((item) => item.active !== false).map((item) => `<option value="${item.id}" ${selectedId === item.id ? "selected" : ""}>${item.eventId ? "活動 - " : ""}${labels[item.type] || item.type} - ${item.name}</option>`).join("");
+      const employeeOptions = (selectedId = "") => (state.employees || []).filter((employee) => employee.active !== false).map((employee) => `<option value="${employee.id}" ${employee.id === selectedId ? "selected" : ""}>${employee.name}</option>`).join("");
+      formCard.classList.remove("hidden");
+      formCard.innerHTML = `<form id="entryForm">
+        <div class="sales-form-grid">
+          ${inputFor(["soldAt", "銷售日期", "date"], row.soldAt)}
+          ${inputFor(["customerName", "客戶名稱", "text"], row.customerName)}
+          ${inputFor(["salesPersonId", "銷售人員", "employees"], row.salesPersonId)}
+          ${inputFor(["paymentMethod", "付款方式", "enum:payments"], row.paymentMethod || "CASH")}
+          ${inputFor(["notes", "匯款資訊", "text"], row.notes)}
+        </div>
+        <div class="sales-detail-card">
+          <div class="sales-detail-title">銷售明細</div>
+          <div class="sales-line-row sales-line-header">
+            <div class="required-column-label">品項</div>
+            <div>服務人員</div>
+            <div>數量</div>
+            <div>單價</div>
+          </div>
+          <div id="salesLineRows">${salesLineRows.map((line, index) => `<div class="sales-line-row" data-sales-line-index="${index}">
+            <label><select name="_itemId"><option value="">請選擇</option>${itemOptions(line.itemId)}</select></label>
+            <label><select name="_servicePersonId"><option value="">請選擇</option>${employeeOptions(line.servicePersonId)}</select></label>
+            <label><input type="number" min="1" name="_quantity" value="${line.quantity || 1}"></label>
+            <label><input type="number" name="_unitPrice" placeholder="預設售價" value="${line.unitPrice || byId("items", line.itemId)?.price || 0}"></label>
+            ${index > 0 ? `<button class="icon-btn danger" type="button" data-remove-sales-line="${index}" aria-label="刪除" title="刪除">×</button>` : ""}
+          </div>`).join("")}</div>
+          <button type="button" id="addSalesLineBtn">新增明細</button>
+        </div>
+        <div class="actions" style="margin-top:14px"><button class="primary">${editingId ? "更新" : "新增"}</button>${editingId ? `<button type="button" id="cancelEdit">取消修改</button>` : ""}</div>
+      </form>`;
+      const syncSalesLineRows = () => {
+        salesLineRows = [...entryForm.querySelectorAll("[data-sales-line-index]")].map((line) => ({
+          itemId: line.querySelector("[name='_itemId']").value,
+          servicePersonId: line.querySelector("[name='_servicePersonId']").value,
+          quantity: Number(line.querySelector("[name='_quantity']").value || 1),
+          unitPrice: Number(line.querySelector("[name='_unitPrice']").value || 0)
+        }));
+      };
+      entryForm.querySelectorAll("[name='_itemId']").forEach((select) => select.addEventListener("change", () => {
+        const line = select.closest("[data-sales-line-index]");
+        const priceInput = line.querySelector("[name='_unitPrice']");
+        if (!Number(priceInput.value || 0)) priceInput.value = byId("items", select.value)?.price || 0;
+        syncSalesLineRows();
+      }));
+      document.getElementById("addSalesLineBtn").onclick = () => {
+        syncSalesLineRows();
+        salesLineRows = [...salesLineRows, { itemId: "", servicePersonId: "", quantity: 1, unitPrice: 0 }];
+        render();
+      };
+      entryForm.querySelectorAll("[data-remove-sales-line]").forEach((button) => button.onclick = () => {
+        syncSalesLineRows();
+        salesLineRows = salesLineRows.filter((_, index) => index !== Number(button.dataset.removeSalesLine));
+        render();
+      });
+      entryForm.onsubmit = (event) => {
+        syncSalesLineRows();
+        saveRecord(event);
+      };
+      if (editingId) cancelEdit.onclick = () => { editingId = ""; salesLineRows = [{ itemId: "", servicePersonId: "", quantity: 1, unitPrice: 0 }]; salesLineRowsSourceId = ""; render(); };
+    }
+    function itemOptionHtml(selectedId = "") {
+      return (state.items || []).map((item) => `<option value="${item.id}" ${selectedId === item.id ? "selected" : ""}>${item.name || item.id}</option>`).join("");
+    }
+    function employeeOptionHtml(selectedId = "") {
+      return (state.employees || []).map((employee) => `<option value="${employee.id}" ${selectedId === employee.id ? "selected" : ""}>${employee.name || employee.id}</option>`).join("");
+    }
+    function renderEventsForm(row) {
+      if (editingId && eventItemRowsSourceId !== editingId) {
+        const relatedItems = (state.items || []).filter((item) => item.eventId === editingId);
+        eventItemRows = relatedItems.length ? relatedItems.map((item) => ({
+          id: item.id,
+          type: item.type || "COURSE_SERVICE",
+          name: item.name || "",
+          price: Number(item.price || 0),
+          cost: Number(item.cost || 0),
+          requiresInventory: Boolean(item.requiresInventory),
+          inventoryQuantity: 0,
+          active: item.active !== false
+        })) : eventItemRows;
+        eventItemRowsSourceId = editingId;
+      } else if (!editingId && eventItemRowsSourceId) {
+        eventItemRows = [{ type: "RITUAL_SERVICE", name: "", price: 0, cost: 0, requiresInventory: false, inventoryQuantity: 0, active: true }];
+        eventItemRowsSourceId = "";
+      }
+      formCard.classList.remove("hidden");
+      formCard.innerHTML = `<form id="entryForm">
+        <div class="form-grid" style="grid-template-columns:minmax(220px,1fr) minmax(260px,1fr)">
+          <label>活動名稱<input name="title" value="${row.title || ""}"></label>
+          <label>活動日期<div class="row" style="gap:8px;flex-wrap:nowrap"><input name="startsAt" type="date" value="${dateOnly(row.startsAt) || today}"><input name="endsAt" type="date" value="${dateOnly(row.endsAt) || today}"></div></label>
+        </div>
+        <div class="event-item-batch" style="margin-top:16px">
+          <h3 style="margin-top:0">活動品項</h3>
+          <div class="batch-item-grid">
+            <div class="batch-item-row batch-item-header"><span></span><span>類型</span><span>名稱</span><span>售價</span><span>成本</span><span>庫存</span><span>庫存數量</span><span></span></div>
+            ${eventItemRows.map((item, index) => `<div class="batch-item-row" data-event-item-index="${index}">
+              <span>${index + 1}</span>
+              <select name="itemType">${enumOptions.itemTypes.map(([value,label]) => `<option value="${value}" ${item.type === value ? "selected" : ""}>${label}</option>`).join("")}</select>
+              <input name="itemName" placeholder="名稱" value="${item.name || ""}">
+              <input name="itemPrice" type="number" min="0" placeholder="售價" value="${item.price ?? 0}">
+              <input name="itemCost" type="number" min="0" placeholder="成本" value="${item.cost ?? 0}">
+              <label class="check"><input name="itemRequiresInventory" type="checkbox" ${item.requiresInventory ? "checked" : ""}>庫存</label>
+              <input name="itemInventoryQuantity" type="number" min="0" placeholder="${item.id ? "既有庫存" : "庫存數量"}" value="${item.inventoryQuantity ?? 0}" ${item.requiresInventory ? "" : "disabled"}>
+              ${index > 0 || editingId ? `<button class="icon-btn danger" type="button" data-remove-event-item-row="${index}" aria-label="刪除" title="刪除">×</button>` : `<span></span>`}
+            </div>`).join("")}
+          </div>
+          <div class="actions" style="margin-top:12px"><button type="button" id="addEventItemRow">＋新增品項</button></div>
+        </div>
+        <div class="actions" style="margin-top:14px"><button class="primary">${editingId ? "更新" : "新增"}</button>${editingId ? `<button type="button" id="cancelEdit">取消編輯</button>` : ""}</div>
+      </form>`;
+      const syncEventItemRows = () => {
+        eventItemRows = [...entryForm.querySelectorAll("[data-event-item-index]")].map((line, index) => ({
+          ...eventItemRows[index],
+          type: line.querySelector("[name='itemType']").value,
+          name: line.querySelector("[name='itemName']").value,
+          price: Number(line.querySelector("[name='itemPrice']").value || 0),
+          cost: Number(line.querySelector("[name='itemCost']").value || 0),
+          requiresInventory: line.querySelector("[name='itemRequiresInventory']").checked,
+          inventoryQuantity: Number(line.querySelector("[name='itemInventoryQuantity']").value || 0),
+          active: true
+        }));
+      };
+      entryForm.querySelectorAll("[name='itemRequiresInventory']").forEach((checkbox) => checkbox.addEventListener("change", () => {
+        syncEventItemRows();
+        render();
+      }));
+      document.getElementById("addEventItemRow").onclick = () => {
+        syncEventItemRows();
+        eventItemRows = [...eventItemRows, { type: "RITUAL_SERVICE", name: "", price: 0, cost: 0, requiresInventory: false, inventoryQuantity: 0, active: true }];
+        render();
+      };
+      entryForm.querySelectorAll("[data-remove-event-item-row]").forEach((button) => button.onclick = () => {
+        syncEventItemRows();
+        eventItemRows = eventItemRows.filter((_, index) => index !== Number(button.dataset.removeEventItemRow));
+        render();
+      });
+      entryForm.onsubmit = (event) => {
+        event.preventDefault();
+        syncEventItemRows();
+        const data = new FormData(entryForm);
+        const eventRow = editingId ? { ...(state.events || []).find((item) => item.id === editingId) } : { id: id() };
+        eventRow.title = String(data.get("title") || "");
+        eventRow.startsAt = String(data.get("startsAt") || today);
+        eventRow.endsAt = String(data.get("endsAt") || eventRow.startsAt);
+        eventRow.active = true;
+        state.events = editingId ? state.events.map((item) => item.id === editingId ? eventRow : item) : [eventRow, ...(state.events || [])];
+        const keptIds = new Set(eventItemRows.filter((item) => item.id).map((item) => item.id));
+        const otherItems = (state.items || []).filter((item) => item.eventId !== eventRow.id || keptIds.has(item.id));
+        const nextEventItems = eventItemRows.filter((item) => item.name.trim()).map((item) => ({
+          id: item.id || id(),
+          eventId: eventRow.id,
+          type: item.type,
+          name: item.name.trim(),
+          price: Number(item.price || 0),
+          cost: Number(item.cost || 0),
+          requiresInventory: Boolean(item.requiresInventory),
+          active: item.active !== false,
+          notes: `活動：${eventRow.title}`
+        }));
+        state.items = [...nextEventItems, ...otherItems.filter((item) => item.eventId !== eventRow.id)];
+        editingId = "";
+        eventItemRows = [{ type: "RITUAL_SERVICE", name: "", price: 0, cost: 0, requiresInventory: false, inventoryQuantity: 0, active: true }];
+        eventItemRowsSourceId = "";
+        save();
+        render();
+      };
+      if (editingId) cancelEdit.onclick = () => { editingId = ""; eventItemRows = [{ type: "RITUAL_SERVICE", name: "", price: 0, cost: 0, requiresInventory: false, inventoryQuantity: 0, active: true }]; eventItemRowsSourceId = ""; render(); };
+    }
+    function renderItemsBatchForm() {
+      const row = editingId ? state.items.find((item) => item.id === editingId) || {} : {};
+      const rows = editingId ? [{
+        type: row.type || "DIVINATION_SERVICE",
+        name: row.name || "",
+        price: row.price || 0,
+        requiresInventory: !!row.requiresInventory,
+        inventoryQuantity: row.stockQuantity || 0
+      }] : itemBatchRows;
+      formCard.classList.add("hidden");
+      dashboard.innerHTML = `<div class="card"><h3>批次新增</h3><form id="itemsBatchForm">
+        <div class="batch-item-grid">
+          <div class="batch-item-row batch-item-header"><span></span><span>類型</span><span class="required-column-label">名稱</span><span>售價</span><span>庫存</span><span>庫存數量</span><span></span></div>
+          ${rows.map((item, index) => `<div class="batch-item-row" data-item-batch-index="${index}">
+            <span>${index + 1}</span>
+            <select name="type">${enumOptions.itemTypes.map(([value,label]) => `<option value="${value}" ${item.type === value ? "selected" : ""}>${label}</option>`).join("")}</select>
+            <input name="name" placeholder="名稱" value="${item.name || ""}" required>
+            <input name="price" type="number" min="0" placeholder="售價" value="${item.price || 0}">
+            <label class="check"><input name="requiresInventory" type="checkbox" ${item.requiresInventory ? "checked" : ""}>庫存</label>
+            <input name="inventoryQuantity" type="number" min="0" placeholder="庫存數量" value="${item.inventoryQuantity || 0}">
+            ${index > 0 && !editingId ? `<button class="icon-btn danger" type="button" data-remove-item-batch-row="${index}" aria-label="刪除" title="刪除">×</button>` : `<span></span>`}
+          </div>`).join("")}
+        </div>
+        <div class="actions" style="margin-top:12px">${editingId ? "" : `<button type="button" id="addItemBatchRow">＋新增</button>`}<button class="primary">${editingId ? "更新" : "批次新增"}</button>${editingId ? `<button type="button" id="cancelEdit">取消編輯</button>` : ""}</div>
+      </form></div>`;
+      const syncItemBatchRows = () => {
+        const nextRows = [...itemsBatchForm.querySelectorAll(".batch-item-row[data-item-batch-index]")].map((row) => ({
+          type: row.querySelector("[name='type']").value,
+          name: row.querySelector("[name='name']").value,
+          price: Number(row.querySelector("[name='price']").value || 0),
+          requiresInventory: row.querySelector("[name='requiresInventory']").checked,
+          inventoryQuantity: Number(row.querySelector("[name='inventoryQuantity']").value || 0)
+        }));
+        if (!editingId) itemBatchRows = nextRows;
+        return nextRows;
+      };
+      document.getElementById("addItemBatchRow")?.addEventListener("click", () => {
+        syncItemBatchRows();
+        itemBatchRows = [...itemBatchRows, { type: "DIVINATION_SERVICE", name: "", price: 0, requiresInventory: false, inventoryQuantity: 0 }];
+        render();
+      });
+      dashboard.querySelectorAll("[data-remove-item-batch-row]").forEach((button) => button.onclick = () => {
+        syncItemBatchRows();
+        itemBatchRows = itemBatchRows.filter((_, index) => index !== Number(button.dataset.removeItemBatchRow));
+        render();
+      });
+      itemsBatchForm.onsubmit = (event) => {
+        event.preventDefault();
+        const formRows = syncItemBatchRows().map((item) => ({ ...item, name: item.name.trim() }));
+        if (formRows.some((item) => !item.name)) {
+          alert("請填寫名稱。");
+          return;
+        }
+        if (editingId) {
+          const formRow = formRows[0];
+          const item = { ...(state.items || []).find((current) => current.id === editingId), ...formRow, cost: Number(row.cost || 0) };
+          state.items = state.items.map((current) => current.id === editingId ? item : current);
+        } else {
+          const createdItems = formRows.map((formRow) => ({ id: id(), active: true, cost: 0, ...formRow }));
+          const openingInventory = createdItems
+            .filter((item) => item.requiresInventory && Number(item.inventoryQuantity || 0) > 0)
+            .map((item) => ({ id: id(), itemId: item.id, type: "PURCHASE", quantity: Number(item.inventoryQuantity), movedAt: today, reason: "批次新增開帳庫存" }));
+          state.inventory = [...openingInventory, ...(state.inventory || [])];
+          state.items = [...createdItems, ...(state.items || [])];
+          itemBatchRows = [{ type: "DIVINATION_SERVICE", name: "", price: 0, requiresInventory: false, inventoryQuantity: 0 }];
+        }
+        editingId = "";
+        save();
+        render();
+      };
+      if (editingId) cancelEdit.onclick = () => { editingId = ""; itemBatchRows = [{ type: "DIVINATION_SERVICE", name: "", price: 0, requiresInventory: false, inventoryQuantity: 0 }]; render(); };
+    }
+    function renderInventoryBatchForm() {
+      formCard.classList.add("hidden");
+      dashboard.innerHTML = `<div class="card"><h3>批次新增</h3><form id="inventoryBatchForm">
+        <div class="batch-inventory-grid">
+          <div class="batch-inventory-row batch-item-header"><span></span><span>品項</span><span>異動類型</span><span>數量</span><span>庫存</span><span>異動時間</span><span>原因</span><span></span></div>
+          ${inventoryBatchRows.map((row, index) => `<div class="batch-inventory-row" data-batch-index="${index}">
+            <span>${index + 1}</span>
+            <select name="itemId"><option value="">請選擇</option>${itemOptionHtml(row.itemId)}</select>
+            <select name="type">${enumOptions.inventoryTypes.map(([value,label]) => `<option value="${value}" ${row.type === value ? "selected" : ""}>${label}</option>`).join("")}</select>
+            <input name="quantity" type="number" value="${row.quantity}">
+            <input name="stockQuantity" disabled value="${row.itemId ? stock(row.itemId) : ""}">
+            <input name="movedAt" type="date" value="${row.movedAt || today}">
+            <input name="reason" placeholder="原因" value="${row.reason || ""}">
+            ${index > 0 ? `<button class="icon-btn danger" type="button" data-remove-batch-row="${index}" aria-label="刪除" title="刪除">×</button>` : `<span></span>`}
+          </div>`).join("")}
+        </div>
+        <div class="actions" style="margin-top:12px"><button type="button" id="addInventoryBatchRow">＋新增</button><button class="primary">批次新增</button></div>
+      </form></div>`;
+      const syncInventoryBatchRows = () => {
+        inventoryBatchRows = [...inventoryBatchForm.querySelectorAll(".batch-inventory-row[data-batch-index]")].map((row) => ({
+          itemId: row.querySelector("[name='itemId']").value,
+          type: row.querySelector("[name='type']").value,
+          quantity: Number(row.querySelector("[name='quantity']").value || 0),
+          movedAt: row.querySelector("[name='movedAt']").value || today,
+          reason: row.querySelector("[name='reason']").value || ""
+        }));
+      };
+      inventoryBatchForm.querySelectorAll("select, input").forEach((input) => input.addEventListener("change", () => {
+        syncInventoryBatchRows();
+        if (input.name === "itemId") render();
+      }));
+      document.getElementById("addInventoryBatchRow").onclick = () => {
+        syncInventoryBatchRows();
+        inventoryBatchRows = [...inventoryBatchRows, { itemId: "", type: "PURCHASE", quantity: 0, movedAt: today, reason: "" }];
+        render();
+      };
+      dashboard.querySelectorAll("[data-remove-batch-row]").forEach((button) => button.onclick = () => {
+        syncInventoryBatchRows();
+        inventoryBatchRows = inventoryBatchRows.filter((_, index) => index !== Number(button.dataset.removeBatchRow));
+        render();
+      });
+      inventoryBatchForm.onsubmit = (event) => {
+        event.preventDefault();
+        syncInventoryBatchRows();
+        const rowsToCreate = inventoryBatchRows.filter((row) => row.itemId);
+        state.inventory = [...rowsToCreate.map((row) => {
+          let quantity = Number(row.quantity || 0);
+          if (row.type === "SALE" || row.type === "CONSUMPTION") quantity = -Math.abs(quantity);
+          return { id: id(), itemId: row.itemId, type: row.type || "PURCHASE", quantity, movedAt: row.movedAt || today, reason: row.reason || "" };
+        }), ...(state.inventory || [])];
+        inventoryBatchRows = [{ itemId: "", type: "PURCHASE", quantity: 0, movedAt: today, reason: "" }];
+        save();
+        render();
+      };
+    }
+    function renderCashExtras(key) {
+      const records = state[key] || [];
+      const month = key === "fixed-expenses" ? reportMonth : defaultMonth;
+      const currentCashBalance = [...(state["petty-cash"] || [])].sort((a,b)=>String(b.entryDate).localeCompare(String(a.entryDate)))[0]?.afterAmount || 0;
+      const currentMonthPettyCashExpense = (state["petty-cash"] || []).filter((row) => row.type === "EXPENSE" && dateOnly(row.entryDate).slice(0,7) === today.slice(0,7)).reduce((sum,row)=>sum+Number(row.amount||0),0);
+      const fixedExpenseTotal = records.filter((row) => dateOnly(row.entryDate).slice(0,7) === month).reduce((sum,row)=>sum+Number(row.amount||0),0);
+      dashboard.innerHTML = `<div class="cash-summary-row">
+        <div class="petty-cash-balance"><span class="muted">${key === "fixed-expenses" ? "固定支出總額" : "目前零用金餘額"}</span><h2>${money(key === "fixed-expenses" ? fixedExpenseTotal : currentCashBalance)}</h2></div>
+        ${key === "petty-cash" ? `<div class="petty-cash-balance"><span class="muted">當月花費零用金總額</span><h2>${money(currentMonthPettyCashExpense)}</h2></div>` : ""}
+      </div>${key === "fixed-expenses" ? `<div class="row" style="margin-bottom:10px"><input id="fixedExpenseMonthInput" type="month" value="${reportMonth}"></div>` : ""}`;
+      document.getElementById("fixedExpenseMonthInput")?.addEventListener("change", (event) => {
+        reportMonth = event.target.value || defaultMonth;
+        render();
+      });
+    }
+    function renderPermissionsPage() {
+      formCard.classList.add("hidden");
+      tableCard.classList.add("hidden");
+      const permissionGroups = [...new Set((state.permissions || []).map((permission) => permission.group))];
+      const editingUser = editingPermissionUserId ? (state.users || []).find((user) => user.id === editingPermissionUserId) : null;
+      const activeRoles = (state.roles || []).filter((role) => role.active !== false);
+      const roleRows = (state.roles || []).map((role) => ({
+        ...role,
+        activeSwitch: `<button class="switch${role.active === false ? " off" : ""}" ${role.name === "Admin" ? "disabled" : `data-role-active="${role.id}"`}>${role.active === false ? "關" : "開"}</button>`,
+        action: `<button data-role-edit="${role.id}">編輯</button>`
+      }));
+      const userRows = (state.users || []).map((user) => ({
+        ...user,
+        roleName: user.role?.name || (user.isAdmin ? "Admin" : relationLabel("roles", user.roleId)),
+        activeSwitch: `<button class="switch${user.active === false ? " off" : ""}" ${user.isAdmin ? "disabled" : `data-user-active="${user.id}"`}>${user.active === false ? "關" : "開"}</button>`,
+        action: user.isAdmin ? "最高權限" : `<button data-user-edit="${user.id}">編輯</button>`
+      }));
+      dashboard.innerHTML = `<div class="permissions-stack">
+        <section class="antd-card">
+          <div class="antd-card-head"><div class="antd-card-title">角色設定</div><button class="primary" id="createRoleBtn">＋ 新增角色</button></div>
+          <div class="antd-card-body">${tableMarkup([["角色", row => row.name], ["備註", row => row.notes || ""], ["啟用", row => row.activeSwitch], ["操作", row => row.action]], roleRows)}</div>
+        </section>
+        <section class="antd-card">
+          <div class="antd-card-head"><div class="antd-card-title">建立帳號</div></div>
+          <div class="antd-card-body">
+            <div class="antd-form-row">
+              <label>Email<input id="permissionEmail" type="email" value="${editingUser?.email || ""}" ${editingUser ? "disabled" : ""}></label>
+              ${editingUser ? "" : `<label>密碼<input id="permissionPassword" type="password" minlength="6"></label>`}
+              <label>角色<select id="permissionRole">${activeRoles.map((role) => `<option value="${role.id}" ${(editingUser?.roleId || activeRoles[0]?.id || "") === role.id ? "selected" : ""}>${role.name}</option>`).join("")}</select></label>
+            </div>
+            <div class="antd-form-actions">
+              <label class="check"><input id="permissionActive" type="checkbox" ${editingUser?.active === false ? "" : "checked"}>啟用</label>
+              <button class="primary" id="permissionSubmitBtn">${editingUser ? "更新帳號" : "建立帳號"}</button>
+              ${editingUser ? `<button id="permissionCancelBtn">取消</button>` : ""}
+            </div>
+          </div>
+        </section>
+        ${tableMarkup([["Email", row => row.email], ["角色", row => row.roleName], ["狀態", row => row.activeSwitch], ["操作", row => row.action]], userRows)}
+      </div>`;
+      const renderRoleModal = (role = null) => {
+        const selected = new Set(role?.pagePermissions || []);
+        const modal = document.createElement("div");
+        modal.className = "modal-backdrop";
+        modal.innerHTML = `<div class="modal-panel">
+          <div class="modal-head"><strong>${role ? "編輯角色" : "新增角色"}</strong></div>
+          <div class="modal-body">
+            <label>角色名稱<input id="roleNameInput" value="${role?.name || ""}"></label>
+            <label style="margin-top:12px">備註<textarea id="roleNotesInput" rows="3">${role?.notes || ""}</textarea></label>
+            <div style="margin-top:12px"><strong>權限樹</strong><div class="permission-tree">${permissionGroups.map((group) => `<div class="permission-group"><strong>${group}</strong>${(state.permissions || []).filter((permission) => permission.group === group).map((permission) => `<label class="check"><input type="checkbox" name="rolePermission" value="${permission.key}" ${selected.has(permission.key) ? "checked" : ""}>${permission.label}</label>`).join("")}</div>`).join("")}</div></div>
+            <label class="check" style="margin-top:12px"><input id="roleActiveInput" type="checkbox" ${role?.active === false ? "" : "checked"}>啟用</label>
+          </div>
+          <div class="modal-foot"><button id="roleCancelBtn">取消</button><button class="primary" id="roleSaveBtn">${role ? "更新角色" : "新增角色"}</button></div>
+        </div>`;
+        document.body.appendChild(modal);
+        modal.querySelector("#roleCancelBtn").onclick = () => modal.remove();
+        modal.querySelector("#roleSaveBtn").onclick = () => {
+          const nextRole = role ? { ...role } : { id: id() };
+          nextRole.name = modal.querySelector("#roleNameInput").value;
+          nextRole.notes = modal.querySelector("#roleNotesInput").value;
+          nextRole.active = modal.querySelector("#roleActiveInput").checked;
+          nextRole.pagePermissions = [...modal.querySelectorAll("input[name='rolePermission']:checked")].map((input) => input.value);
+          state.roles = role ? state.roles.map((item) => item.id === role.id ? nextRole : item) : [nextRole, ...(state.roles || [])];
+          save();
+          modal.remove();
+          render();
+        };
+      };
+      document.getElementById("createRoleBtn").onclick = () => renderRoleModal();
+      dashboard.querySelectorAll("[data-role-edit]").forEach((button) => button.onclick = () => renderRoleModal((state.roles || []).find((role) => role.id === button.dataset.roleEdit)));
+      dashboard.querySelectorAll("[data-role-active]").forEach((button) => button.onclick = () => {
+        state.roles = (state.roles || []).map((role) => role.id === button.dataset.roleActive ? { ...role, active: role.active === false } : role);
+        save();
+        render();
+      });
+      dashboard.querySelectorAll("[data-user-active]").forEach((button) => button.onclick = () => {
+        state.users = (state.users || []).map((user) => user.id === button.dataset.userActive ? { ...user, active: user.active === false } : user);
+        save();
+        render();
+      });
+      dashboard.querySelectorAll("[data-user-edit]").forEach((button) => button.onclick = () => {
+        editingPermissionUserId = button.dataset.userEdit;
+        render();
+      });
+      document.getElementById("permissionCancelBtn")?.addEventListener("click", () => {
+        editingPermissionUserId = "";
+        render();
+      });
+      document.getElementById("permissionSubmitBtn")?.addEventListener("click", () => {
+        const roleId = document.getElementById("permissionRole")?.value || "";
+        const role = (state.roles || []).find((item) => item.id === roleId);
+        if (editingUser) {
+          state.users = (state.users || []).map((user) => user.id === editingUser.id ? { ...user, roleId, role: role ? { id: role.id, name: role.name } : null, active: document.getElementById("permissionActive").checked, pagePermissions: role?.pagePermissions || [] } : user);
+        } else {
+          const email = document.getElementById("permissionEmail")?.value.trim();
+          const password = document.getElementById("permissionPassword")?.value || "";
+          if (!email || password.length < 6 || !roleId) return alert("請填寫 Email、至少 6 碼密碼與角色。");
+          state.users = [{ id: id(), email, name: email, active: document.getElementById("permissionActive").checked, isAdmin: false, roleId, role: role ? { id: role.id, name: role.name } : null, pagePermissions: role?.pagePermissions || [] }, ...(state.users || [])];
+        }
+        editingPermissionUserId = "";
+        save();
+        render();
+      });
+    }
+    function tableMarkup(columns, rows) {
+      return `<div class="table-wrap" style="max-height:none"><table><thead><tr>${columns.map((column) => `<th>${column[0]}</th>`).join("")}</tr></thead><tbody>${rows.map((row) => `<tr>${columns.map((column) => `<td>${column[1](row)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+    }
+    function renderForm(config) {
+      const key = activeKey();
+      const row = editingId ? (state[key] || []).find((item) => item.id === editingId) : {};
+      if (key === "sales") {
+        renderSalesForm(row);
+        return;
+      }
+      const fields = (config.fields || []).filter(([name]) => !(key === "petty-cash" && name === "notes"));
+      let extra = "";
+      formCard.classList.remove("hidden");
+      formCard.innerHTML = `<form id="entryForm"><div class="form-grid">${fields.map((field) => inputFor(field, row[field[0]] ?? defaultFor(field[2], field[0]))).join("")}${extra}</div><div class="actions" style="margin-top:14px"><button class="primary">${editingId ? "更新" : "新增"}</button>${editingId ? `<button type="button" id="cancelEdit">取消編輯</button>` : ""}</div></form>`;
+      entryForm.onsubmit = saveRecord;
+      if (editingId) cancelEdit.onclick = () => { editingId = ""; render(); };
+    }
+    function saveRecord(event) {
+      event.preventDefault();
+      const key = activeKey();
+      const config = modules[key];
+      const data = new FormData(event.target);
+      const row = editingId ? { ...(state[key] || []).find((item) => item.id === editingId) } : { id: id() };
+      for (const [name, , type] of config.fields || []) {
+        if (type === "checkbox") row[name] = data.get(name) === "on";
+        else if (type === "number") row[name] = Number(data.get(name) || 0);
+        else if (name === "tagIds") row[name] = data.get(name) ? [String(data.get(name))] : [];
+        else row[name] = String(data.get(name) || "");
+      }
+      if (key === "employees") {
+        row.name = String(row.name || "").trim();
+        if (!row.name || !(row.tagIds || []).length) {
+          alert("請填寫姓名與 TAG。");
+          return;
+        }
+      }
+      if (key === "sales") {
+        const lines = salesLineRows
+          .filter((line) => line.itemId)
+          .map((line) => {
+            const quantity = Number(line.quantity || 1);
+            const unitPrice = Number(line.unitPrice || byId("items", line.itemId)?.price || 0);
+            return { itemId: line.itemId, servicePersonId: line.servicePersonId || "", quantity, unitPrice, lineTotal: quantity * unitPrice };
+          });
+        row.servicePersonId = lines[0]?.servicePersonId || "";
+        row.lines = lines;
+        row.subtotal = row.lines.reduce((sum, line) => sum + line.lineTotal, 0);
+        row.discount = 0;
+        row.total = row.subtotal;
+        row.status = "CLOSED";
+        salesLineRows = [{ itemId: "", servicePersonId: "", quantity: 1, unitPrice: 0 }];
+        salesLineRowsSourceId = "";
+      }
+      const list = state[key] || [];
+      state[key] = editingId ? list.map((item) => item.id === editingId ? row : item) : [row, ...list];
+      editingId = "";
+      save();
+      render();
+    }
+    function renderTable(config) {
+      const key = activeKey();
+      const query = search.value.trim().toLowerCase();
+      const rows = (state[key] || []).map((row) => enriched(key, row)).filter((row) => JSON.stringify(row).toLowerCase().includes(query));
+      count.textContent = `${rows.length} 筆`;
+      const columns = config.columns || [];
+      const editIcon = `<svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M5 19h1.4l9.2-9.2-1.4-1.4L5 17.6V19Zm-2 2v-4.2L15.6 4.2a2 2 0 0 1 2.8 0l1.4 1.4a2 2 0 0 1 0 2.8L7.2 21H3Zm12.6-12.6-1.4-1.4 1.4 1.4Z"/></svg>`;
+      const deleteIcon = `<svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 21q-.8 0-1.4-.6Q5 19.8 5 19V6H4V4h5V3h6v1h5v2h-1v13q0 .8-.6 1.4-.6.6-1.4.6H7ZM17 6H7v13h10V6ZM9 17h2V8H9v9Zm4 0h2V8h-2v9Z"/></svg>`;
+      const cellHtml = (row, col) => key === "employees" && col === "active"
+        ? `<button class="switch${row.active === false ? " off" : ""}" data-employee-active="${row.id}">${row.active === false ? "關" : "開"}</button>`
+        : formatCell(row[col], col);
+      table.innerHTML = `<thead><tr>${columns.map((col) => `<th>${columnTitle(col)}</th>`).join("")}<th>操作</th></tr></thead><tbody>${rows.map((row) => `<tr>${columns.map((col) => `<td>${cellHtml(row, col)}</td>`).join("")}<td><div class="table-actions"><button class="icon-btn" data-edit="${row.id}" aria-label="編輯" title="編輯">${editIcon}</button><button class="icon-btn danger" data-del="${row.id}" aria-label="刪除" title="刪除">${deleteIcon}</button></div></td></tr>`).join("")}</tbody>`;
+      table.querySelectorAll("[data-employee-active]").forEach((button) => button.onclick = () => {
+        state.employees = (state.employees || []).map((employee) => employee.id === button.dataset.employeeActive ? { ...employee, active: employee.active === false } : employee);
+        save();
+        render();
+      });
+      table.querySelectorAll("[data-edit]").forEach((button) => button.onclick = () => { editingId = button.dataset.edit; render(); window.scrollTo(0, 0); });
+      table.querySelectorAll("[data-del]").forEach((button) => button.onclick = () => { if (confirm("確定刪除這筆資料？")) { state[key] = (state[key] || []).filter((row) => row.id !== button.dataset.del); save(); render(); } });
+    }
+    function columnTitle(col) {
+      return ({ soldAt: "日期", customerName: "客戶", salesPerson: "銷售人員", servicePerson: "服務人員", paymentMethod: "付款方式", total: "總額", type: "類型", name: "名稱", price: "售價", cost: "成本", requiresInventory: "需要庫存", stockQuantity: "庫存", active: "啟用", item: "品項", quantity: "數量", movedAt: "日期", reason: "原因", value: "價值", purchasedAt: "購買日期", depreciation: "折舊", amount: "金額", purpose: "用途", employee: "人員", entryDate: "日期", checkedOut: "出帳", phone: "電話", role: "職務", tags: "TAG", event: "活動", startsAt: "開始", endsAt: "結束", location: "地點", title: "標題", term: "期別", registeredAt: "日期", attendeeName: "姓名", status: "狀態", paidAmount: "金額", email: "Email", serviceLink: "服務連結", customer: "客戶", topic: "主題", link: "連結", recordedAt: "日期", courseName: "課程", paidAt: "付款日", category: "分類", description: "說明", sop: "SOP", sortOrder: "排序", owner: "負責" })[col] || col;
+    }
+    function render() {
+      if (current === "reports-yearly") {
+        current = "reports-monthly";
+        location.hash = current;
+        return render();
+      }
+      const config = current === "events" ? modules[eventTab] : modules[current] || modules.dashboard;
+      current = modules[current] ? current : "dashboard";
+      title.textContent = current === "events" ? "活動管理" : config.title;
+      desc.textContent = current === "events" ? "管理活動、活動品項與報名資料。" : config.desc || "";
+      document.body.classList.toggle("page-actions-hidden", current === "permissions" || current === "events");
+      dashboard.innerHTML = "";
+      formCard.classList.remove("hidden");
+      tableCard.classList.remove("hidden");
+      renderNav();
+      if (current === "events") {
+        dashboard.innerHTML = `<div class="row" style="margin-bottom: 14px;"><button class="${eventTab === "event-registrations" ? "primary" : ""}" data-event-tab="event-registrations">活動報名</button><button class="${eventTab === "events" ? "primary" : ""}" data-event-tab="events">活動管理</button></div>`;
+        dashboard.querySelectorAll("[data-event-tab]").forEach((button) => button.onclick = () => {
+          eventTab = button.dataset.eventTab;
+          editingId = "";
+          eventItemRows = [{ type: "RITUAL_SERVICE", name: "", price: 0, cost: 0, requiresInventory: false, inventoryQuantity: 0, active: true }];
+          eventItemRowsSourceId = "";
+          render();
+        });
+      }
+      if (current === "shifts") renderShiftsCalendar();
+      else if (config.dashboard) renderDashboard();
+      else if (config.report) renderReport();
+      else if (config.permissions) renderPermissionsPage();
+      else if (current === "events" && eventTab === "events") renderEventsForm(editingId ? (state.events || []).find((item) => item.id === editingId) || {} : {});
+      else if (current === "items") renderItemsBatchForm();
+      else if (current === "inventory") renderInventoryBatchForm();
+      else renderForm(config);
+      if (current === "petty-cash" || current === "fixed-expenses") renderCashExtras(current);
+      if (!["shifts", "permissions"].includes(current)) renderTable(config);
+    }
+    search.oninput = render;
+    resetBtn.onclick = () => { if (confirm("重設後會清除瀏覽器內的離線資料，並重新帶入開發資料。")) { state = structuredClone(seed); save(); editingId = ""; render(); } };
+    exportBtn.onclick = () => {
+      const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+      const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: "unv-plan-erp-data.json" });
+      a.click();
+      URL.revokeObjectURL(a.href);
+    };
+    importFile.onchange = async () => {
+      const file = importFile.files[0];
+      if (!file) return;
+      state = { ...structuredClone(seed), ...JSON.parse(await file.text()) };
+      save();
+      render();
+    };
+    window.addEventListener("hashchange", () => { current = location.hash.replace("#", "") || "dashboard"; editingId = ""; render(); });
+    render();
+  </script>
+</body>
+</html>

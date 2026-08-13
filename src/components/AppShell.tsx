@@ -6,15 +6,16 @@ import {
   CalendarOutlined,
   DatabaseOutlined,
   FileTextOutlined,
-  LogoutOutlined,
+  SettingOutlined,
   ShopOutlined,
   TeamOutlined,
   UserOutlined,
   WalletOutlined
 } from "@ant-design/icons";
-import { Button, Layout, Menu, Typography } from "antd";
+import { Layout, Menu } from "antd";
 import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
+import { pagePermissions } from "@/lib/permissions";
 
 type NavGroup = {
   label: string;
@@ -68,23 +69,39 @@ const groups: NavGroup[] = [
     label: "服務",
     icon: <FileTextOutlined />,
     links: [
-      { href: "/sops", label: "SOP" },
-      { href: "/customer-service-records", label: "客服紀錄" }
+      { href: "/sops", label: "SOP" }
+    ]
+  },
+  {
+    label: "系統",
+    icon: <SettingOutlined />,
+    links: [
+      { href: "/permissions", label: "權限設定", icon: <SettingOutlined /> }
     ]
   }
 ];
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({
+  children,
+  userPermissions
+}: {
+  children: React.ReactNode;
+  userPermissions: string[];
+}) {
   const pathname = usePathname();
   const router = useRouter();
+  const hrefPermissionMap = new Map<string, string>(pagePermissions.map((permission) => [permission.href, permission.key]));
+  const allowedGroups = groups
+    .map((group) => ({
+      ...group,
+      links: group.links.filter((link) => {
+        const permissionKey = hrefPermissionMap.get(link.href);
+        return !permissionKey || userPermissions.includes(permissionKey);
+      })
+    }))
+    .filter((group) => group.links.length > 0);
 
-  async function logout() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/login");
-    router.refresh();
-  }
-
-  const menuItems = groups.map((group) => ({
+  const menuItems = allowedGroups.map((group) => ({
     key: group.label,
     icon: group.icon,
     label: group.label,
@@ -98,6 +115,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <TeamOutlined />
         ) : link.href.includes("event") ? (
           <CalendarOutlined />
+        ) : link.href.includes("permission") ? (
+          <SettingOutlined />
         ) : (
           <FileTextOutlined />
         )),
@@ -113,17 +132,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           theme="light"
           mode="inline"
           selectedKeys={[pathname]}
-          defaultOpenKeys={groups.map((group) => group.label)}
+          defaultOpenKeys={allowedGroups.map((group) => group.label)}
           items={menuItems}
           onClick={(event) => router.push(event.key)}
         />
       </Layout.Sider>
       <Layout>
-        <Layout.Header className="erp-header">
-          <Button icon={<LogoutOutlined />} onClick={logout}>
-            登出
-          </Button>
-        </Layout.Header>
+        <Layout.Header className="erp-header" />
         <Layout.Content className="erp-content">{children}</Layout.Content>
       </Layout>
     </Layout>

@@ -1,4 +1,4 @@
-import crypto from "crypto";
+import * as crypto from "crypto";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 export { hashPassword, verifyPassword } from "@/lib/password";
@@ -42,7 +42,17 @@ export async function getSessionUser() {
     if (!data.userId) return null;
     return prisma.user.findFirst({
       where: { id: data.userId, active: true },
-      select: { id: true, email: true, name: true }
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        isAdmin: true,
+        pagePermissions: true,
+        roleId: true,
+        role: {
+          select: { id: true, name: true, pagePermissions: true }
+        }
+      }
     });
   } catch {
     return null;

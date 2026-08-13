@@ -1,23 +1,6 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
-const publicPaths = ["/login", "/register"];
-
-export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  if (
-    pathname.startsWith("/api/auth") ||
-    pathname.startsWith("/_next") ||
-    pathname.includes(".") ||
-    publicPaths.includes(pathname)
-  ) {
-    return NextResponse.next();
-  }
-
-  const hasSession = request.cookies.has("erp_session");
-  if (!hasSession) {
-    const loginUrl = new URL("/login", request.url);
-    return NextResponse.redirect(loginUrl);
-  }
+export function middleware() {
   return NextResponse.next();
 }
 

@@ -75,9 +75,26 @@ model User {
   email        String   @unique
   name         String
   passwordHash String
+  roleId       String?
+  pagePermissions String @default("[]")
+  isAdmin      Boolean  @default(false)
   active       Boolean  @default(true)
+  role         Role?    @relation(fields: [roleId], references: [id], onDelete: SetNull)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  @@index([roleId])
+}
+
+model Role {
+  id              String   @id @default(cuid())
+  name            String   @unique
+  pagePermissions String   @default("[]")
+  notes           String?
+  active          Boolean  @default(true)
+  users           User[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 model Item {

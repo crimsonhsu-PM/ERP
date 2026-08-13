@@ -1,7 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { DashboardClient } from "@/components/DashboardClient";
+import { requirePagePermission } from "@/lib/page-auth";
 
 export default async function DashboardPage() {
+  await requirePagePermission("dashboard");
   const today = new Date();
   const dayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const dayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
