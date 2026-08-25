@@ -6,13 +6,15 @@ import {
   CalendarOutlined,
   DatabaseOutlined,
   FileTextOutlined,
+  FireOutlined,
+  LogoutOutlined,
   SettingOutlined,
   ShopOutlined,
   TeamOutlined,
   UserOutlined,
   WalletOutlined
 } from "@ant-design/icons";
-import { Layout, Menu } from "antd";
+import { Button, Layout, Menu, Space, Typography } from "antd";
 import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { pagePermissions } from "@/lib/permissions";
@@ -69,6 +71,7 @@ const groups: NavGroup[] = [
     label: "服務",
     icon: <FileTextOutlined />,
     links: [
+      { href: "/lighting", label: "點燈紀錄", icon: <FireOutlined /> },
       { href: "/sops", label: "SOP" }
     ]
   },
@@ -83,9 +86,11 @@ const groups: NavGroup[] = [
 
 export function AppShell({
   children,
+  user,
   userPermissions
 }: {
   children: React.ReactNode;
+  user: { name: string | null; email: string };
   userPermissions: string[];
 }) {
   const pathname = usePathname();
@@ -124,6 +129,12 @@ export function AppShell({
     }))
   }));
 
+  async function logout() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/login");
+    router.refresh();
+  }
+
   return (
     <Layout style={{ minHeight: "100vh" }}>
       <Layout.Sider width={260} breakpoint="lg" collapsedWidth={0}>
@@ -138,7 +149,16 @@ export function AppShell({
         />
       </Layout.Sider>
       <Layout>
-        <Layout.Header className="erp-header" />
+        <Layout.Header className="erp-header">
+          <Space size={12}>
+            <Typography.Text className="erp-header-user">
+              {user.email}
+            </Typography.Text>
+            <Button icon={<LogoutOutlined />} onClick={logout}>
+              登出
+            </Button>
+          </Space>
+        </Layout.Header>
         <Layout.Content className="erp-content">{children}</Layout.Content>
       </Layout>
     </Layout>

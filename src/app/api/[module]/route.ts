@@ -123,7 +123,8 @@ const eventItemTypes = new Set([
   "FENG_SHUI_SERVICE",
   "COURSE_SERVICE",
   "OIL_DONATION",
-  "PHYSICAL_PRODUCT"
+  "PHYSICAL_PRODUCT",
+  "LIGHTING_SERVICE"
 ]);
 
 type EventItemData = {
@@ -162,8 +163,9 @@ function buildEventItemData(raw: Record<string, unknown>, eventTitle: string): E
   const itemPrice = numberValue(raw.itemPrice ?? raw.price);
   const itemCost = numberValue(raw.itemCost ?? raw.cost);
   const servicePersonId = textValue(raw.servicePersonId);
-  const requiresInventory =
-    itemTypeValue === "OIL_DONATION" ? false : booleanValue(raw.itemRequiresInventory ?? raw.requiresInventory);
+  const requiresInventory = ["OIL_DONATION", "LIGHTING_SERVICE"].includes(itemTypeValue)
+    ? false
+    : booleanValue(raw.itemRequiresInventory ?? raw.requiresInventory);
   const inventoryQuantity = numberValue(raw.itemInventoryQuantity ?? raw.inventoryQuantity);
   const hasInput =
     itemName ||

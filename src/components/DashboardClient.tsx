@@ -11,7 +11,8 @@ const itemTypeLabels: Record<string, string> = {
   FENG_SHUI_SERVICE: "風水服務",
   COURSE_SERVICE: "課程服務",
   OIL_DONATION: "香油捐贈",
-  PHYSICAL_PRODUCT: "實體商品"
+  PHYSICAL_PRODUCT: "實體商品",
+  LIGHTING_SERVICE: "點燈服務"
 };
 
 type ItemRevenueShare = {

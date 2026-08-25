@@ -57,6 +57,7 @@ const itemTypeLabels: Record<string, string> = {
   COURSE_SERVICE: "課程服務",
   OIL_DONATION: "香油捐贈",
   PHYSICAL_PRODUCT: "實體商品",
+  LIGHTING_SERVICE: "點燈服務",
   SERVICE: "占卜服務",
   PRODUCT: "實體商品"
 };
@@ -141,8 +142,15 @@ export function SalesPage() {
       (soldAt.isValid() &&
         !soldAt.isBefore(dayjs(dateFilter[0]), "day") &&
         !soldAt.isAfter(dayjs(dateFilter[1]), "day"));
-    const matchesCustomer =
-      !customerFilter.trim() || (sale.customerName ?? "").toLowerCase().includes(customerFilter.trim().toLowerCase());
+    const saleSearchText = [
+      sale.customerName ?? "",
+      ...sale.lines.flatMap((line) => [
+        line.item.name,
+        itemTypeLabels[line.item.type] ?? line.item.type,
+        line.item.type
+      ])
+    ].join(" ");
+    const matchesCustomer = fuzzyIncludes(saleSearchText, customerFilter);
     const matchesSalesPerson = !salesPersonFilter || sale.salesPerson?.id === salesPersonFilter;
     const matchesServicePerson = !servicePersonFilter || sale.servicePerson?.id === servicePersonFilter;
     return matchesDate && matchesCustomer && matchesSalesPerson && matchesServicePerson;
@@ -460,7 +468,7 @@ export function SalesPage() {
             }
           />
           <Input
-            placeholder="客戶"
+            placeholder="客戶 / 品項"
             allowClear
             value={customerFilter}
             onChange={(event) => setCustomerFilter(event.target.value)}

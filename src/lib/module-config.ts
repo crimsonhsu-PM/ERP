@@ -47,7 +47,8 @@ export const itemTypeOptions = [
   { label: "風水服務", value: "FENG_SHUI_SERVICE" },
   { label: "課程服務", value: "COURSE_SERVICE" },
   { label: "香油捐贈", value: "OIL_DONATION" },
-  { label: "實體商品", value: "PHYSICAL_PRODUCT" }
+  { label: "實體商品", value: "PHYSICAL_PRODUCT" },
+  { label: "點燈服務", value: "LIGHTING_SERVICE" }
 ];
 
 export const moduleConfigs: ModuleConfig[] = [

@@ -14,6 +14,7 @@ enum ItemType {
   COURSE_SERVICE
   OIL_DONATION
   PHYSICAL_PRODUCT
+  LIGHTING_SERVICE
 }
 
 enum PaymentMethod {
@@ -70,6 +71,15 @@ enum RegistrationStatus {
   CANCELLED
 }
 
+enum LampType {
+  BRIGHT
+  LOVE
+  MEDICINE_BUDDHA
+  ENLIGHTENMENT
+  WEALTH
+  NUWA
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -113,6 +123,7 @@ model Item {
   saleLines          SaleLine[]
   eventRegistrations EventRegistration[]
   inventoryMovements InventoryMovement[]
+  lampPrice          LampPrice?
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
 
@@ -339,4 +350,29 @@ model CoursePayment {
   customer      Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
+}
+
+model LampPrice {
+  id        String   @id @default(cuid())
+  type      LampType @unique
+  price     Decimal  @default(0)
+  itemId    String?  @unique
+  item      Item?    @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model LampRecord {
+  id         String   @id @default(cuid())
+  personName String?
+  birthDate  DateTime?
+  address    String?
+  type       LampType
+  litYear    Int
+  litDate    DateTime
+  price      Decimal  @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([litYear, litDate])
 }

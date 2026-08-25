@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { hashPassword } from "@/lib/auth";
 import { requireApiPermission } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 import {
@@ -80,6 +81,11 @@ export async function PATCH(request: NextRequest, context: Context) {
     const role = roleId ? await prisma.role.findUnique({ where: { id: roleId } }) : null;
     if (!role || !role.active) return NextResponse.json({ error: "請選擇有效角色。" }, { status: 400 });
 
+    const password = String(body.password ?? "");
+    if (password && password.length < 6) {
+      return NextResponse.json({ error: "新密碼至少需要 6 碼。" }, { status: 400 });
+    }
+
     const rolePermissionKeys = parsePagePermissions(role.pagePermissions);
     const pagePermissionKeys = constrainPermissions(rolePermissionKeys, auth.user);
     const user = await prisma.user.update({
@@ -88,6 +94,7 @@ export async function PATCH(request: NextRequest, context: Context) {
         name: String(body.name ?? target.name).trim() || target.name,
         active: body.active === undefined ? target.active : Boolean(body.active),
         roleId,
+        ...(password ? { passwordHash: await hashPassword(password) } : {}),
         pagePermissions: serializePagePermissions(pagePermissionKeys)
       },
       include: { role: { select: { id: true, name: true } } }

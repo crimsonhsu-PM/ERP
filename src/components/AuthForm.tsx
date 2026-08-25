@@ -96,11 +96,11 @@ function AuthFormInner({ mode }: { mode: "login" | "register" }) {
           <Button type="primary" htmlType="submit" loading={loading}>
             {loading ? "處理中..." : mode === "login" ? "登入" : "建立帳號"}
           </Button>
-          <Link href={mode === "login" ? "/register" : "/login"}>
-            <Button>
-            {mode === "login" ? "建立帳號" : "已有帳號"}
-            </Button>
-          </Link>
+          {mode === "register" && (
+            <Link href="/login">
+              <Button>已有帳號</Button>
+            </Link>
+          )}
         </Space>
           </Space>
         </form>

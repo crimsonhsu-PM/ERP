@@ -67,7 +67,7 @@ flowchart TB
 
 ## 三、營收核心關聯
 
-這張只看「營收登記」如何連到進銷項目、人員、庫存、數據總覽與月/年報表。
+這張只看營收核心資料流向：進銷項目與人員管理提供輸入，營收登記寫入營收主檔與銷售明細，營收資料再流向數據總覽、月報表、年報表；需庫存品項會同步產生庫存流水。
 
 ```mermaid
 flowchart LR
@@ -87,25 +87,25 @@ flowchart LR
 
   itemsPage --> itemTable
   employeesPage --> employeeTable
-  itemsPage ==>|"強關聯：選銷售品項"| salesPage
-  employeesPage ==>|"強關聯：選銷售/服務人員"| salesPage
+  itemTable ==>|"提供品項、售價、成本、是否扣庫存"| salesPage
+  employeeTable ==>|"提供銷售人員、服務人員"| salesPage
 
   salesPage --> saleTable
   salesPage --> saleLineTable
-  saleTable -->|"1 對多"| saleLineTable
-  saleLineTable -->|"itemId"| itemTable
-  saleTable -->|"salesPersonId / servicePersonId"| employeeTable
+  saleTable -->|"Sale.id -> SaleLine.saleId"| saleLineTable
+  itemTable -->|"Item.id -> SaleLine.itemId"| saleLineTable
+  employeeTable -->|"Employee.id -> Sale.salesPersonId / servicePersonId"| saleTable
 
-  dashboardPage -.->|"今日、本月、品項占比"| saleTable
-  dashboardPage -.-> saleLineTable
-  monthlyReportPage -.->|"月營收 / 品項 / 付款方式"| saleTable
-  monthlyReportPage -.-> saleLineTable
-  yearlyReportPage -.->|"年度營收 / 年度利潤"| saleTable
-  yearlyReportPage -.-> saleLineTable
+  saleTable ==>|"今日營收、本月營收、每日營收"| dashboardPage
+  saleLineTable ==>|"品項占比"| dashboardPage
+  saleTable ==>|"月營收、付款方式、月比較"| monthlyReportPage
+  saleLineTable ==>|"品項/類別營收、成本、分潤"| monthlyReportPage
+  saleTable ==>|"年度營收、年度利潤"| yearlyReportPage
+  saleLineTable ==>|"年度品項/類別彙總"| yearlyReportPage
 
   inventoryPage --> inventoryTable
-  saleTable -.->|"需庫存品項銷售時 / 自動新增 SALE 扣庫存"| inventoryTable
-  inventoryTable -->|"itemId；多筆異動累計庫存"| itemTable
+  saleLineTable -.->|"若 Item.requiresInventory = true / 自動新增 SALE 扣庫存"| inventoryTable
+  inventoryTable -->|"庫存流水加總後顯示庫存數"| itemTable
 ```
 
 ## 四、模組、頁面與資料庫關聯
@@ -186,14 +186,6 @@ flowchart LR
     registration_saleId["EventRegistration.saleId / 同步營收單"]
   end
 
-  subgraph sopTable["SOP / Sop"]
-    sop_id["Sop.id / SOP 主檔 ID"]
-  end
-
-  subgraph sopStepTable["SOP / SopStep"]
-    sopStep_sopId["SopStep.sopId / 所屬 SOP"]
-  end
-
   subgraph roleTable["權限設定 / Role"]
     role_id["Role.id / 角色 ID"]
   end
@@ -219,7 +211,6 @@ flowchart LR
   item_id -->|"活動報名項目"| registration_itemId
   sale_id -->|"付款後同步營收"| registration_saleId
 
-  sop_id -->|"SOP 步驟"| sopStep_sopId
   role_id -->|"使用者角色"| user_roleId
 ```
 
@@ -230,157 +221,154 @@ flowchart LR
   subgraph masterData["主檔資料"]
     direction TB
     itemTable["`Item
-頁面：進銷項目
-id：PK
-type：類型
-name：名稱
-price：售價
-cost：成本
-requiresInventory：需庫存
-active：啟用
-notes：備註
-eventId：FK 活動
-servicePersonId：FK 服務人員`"]
+欄位｜說明
+頁面｜進銷項目
+id｜PK
+type｜類型
+name｜名稱
+price｜售價
+cost｜成本
+requiresInventory｜需庫存
+active｜啟用
+notes｜備註
+eventId｜FK 活動
+servicePersonId｜FK 服務人員`"]
     employeeTable["`Employee
-頁面：人員管理
-id：PK
-name：姓名
-phone：電話
-role：職務
-active：啟用`"]
+欄位｜說明
+頁面｜人員管理
+id｜PK
+name｜姓名
+phone｜電話
+role｜職務
+active｜啟用`"]
     employeeTagTable["`EmployeeTag
-頁面：人員管理 TAG
-id：PK
-name：TAG 名稱`"]
+欄位｜說明
+頁面｜人員管理 TAG
+id｜PK
+name｜TAG 名稱`"]
   end
 
   subgraph revenueData["營收核心"]
     direction TB
     saleTable["`Sale
-頁面：營收登記
-id：PK
-soldAt：銷售日期
-customerName：客戶名稱
-salesPersonId：FK 銷售人員
-servicePersonId：FK 服務人員
-paymentMethod：付款方式
-status：狀態
-subtotal：小計
-discount：折扣
-total：總額
-notes：備註`"]
+欄位｜說明
+頁面｜營收登記
+id｜PK
+soldAt｜銷售日期
+customerName｜客戶名稱
+salesPersonId｜FK 銷售人員
+servicePersonId｜FK 服務人員
+paymentMethod｜付款方式
+status｜狀態
+subtotal｜小計
+discount｜折扣
+total｜總額
+notes｜備註`"]
     saleLineTable["`SaleLine
-頁面：營收登記
-id：PK
-saleId：FK 營收單
-itemId：FK 品項
-quantity：數量
-unitPrice：單價
-lineTotal：明細金額`"]
+欄位｜說明
+頁面｜營收登記
+id｜PK
+saleId｜FK 營收單
+itemId｜FK 品項
+quantity｜數量
+unitPrice｜單價
+lineTotal｜明細金額`"]
   end
 
   subgraph operationData["營運流水"]
     direction TB
     inventoryTable["`InventoryMovement
-頁面：庫存紀錄
-id：PK
-itemId：FK 品項
-type：異動類型
-quantity：數量
-reason：原因
-movedAt：異動時間`"]
+欄位｜說明
+頁面｜庫存紀錄
+id｜PK
+itemId｜FK 品項
+type｜異動類型
+quantity｜數量
+reason｜原因
+movedAt｜異動時間`"]
     shiftTable["`Shift
-頁面：排班紀錄
-id：PK
-employeeId：FK 員工
-eventId：FK 活動
-type：班別
-startsAt：開始時間
-endsAt：結束時間
-location：地點
-notes：備註`"]
+欄位｜說明
+頁面｜排班紀錄
+id｜PK
+employeeId｜FK 員工
+eventId｜FK 活動
+type｜班別
+startsAt｜開始時間
+endsAt｜結束時間
+location｜地點
+notes｜備註`"]
     pettyCashTable["`PettyCashEntry
-頁面：零用支出
-id：PK
-type：收入/支出
-amount：金額
-purpose：用途
-employeeId：FK 代墊者
-checkedOut：出帳
-entryDate：日期
-notes：備註`"]
+欄位｜說明
+頁面｜零用支出
+id｜PK
+type｜收入/支出
+amount｜金額
+purpose｜用途
+employeeId｜FK 代墊者
+checkedOut｜出帳
+entryDate｜日期
+notes｜備註`"]
     fixedExpenseTable["`FixedExpense
-頁面：固定支出
-id：PK
-type：類型
-amount：金額
-purpose：用途
-employeeId：FK 對象
-entryDate：日期`"]
+欄位｜說明
+頁面｜固定支出
+id｜PK
+type｜類型
+amount｜金額
+purpose｜用途
+employeeId｜FK 對象
+entryDate｜日期`"]
   end
 
   subgraph eventData["活動資料"]
     direction TB
     eventTable["`Event
-頁面：活動管理
-id：PK
-title：活動名稱
-term：期別
-startsAt：開始日期
-endsAt：結束日期
-preparationNote：前置備註
-active：啟用`"]
+欄位｜說明
+頁面｜活動管理
+id｜PK
+title｜活動名稱
+term｜期別
+startsAt｜開始日期
+endsAt｜結束日期
+preparationNote｜前置備註
+active｜啟用`"]
     registrationTable["`EventRegistration
-頁面：活動管理（報名付款）
-id：PK
-eventId：FK 活動
-itemId：FK 品項
-customerId：FK 客戶
-saleId：FK 營收單
-attendeeName：姓名
-phone：電話
-registeredAt：報名日期
-status：狀態
-paidAmount：付款金額
-paymentMethod：付款方式
-remittanceRef：匯款資訊
-notes：備註`"]
+欄位｜說明
+頁面｜活動管理（報名付款）
+id｜PK
+eventId｜FK 活動
+itemId｜FK 品項
+customerId｜FK 客戶
+saleId｜FK 營收單
+attendeeName｜姓名
+phone｜電話
+registeredAt｜報名日期
+status｜狀態
+paidAmount｜付款金額
+paymentMethod｜付款方式
+remittanceRef｜匯款資訊
+notes｜備註`"]
   end
 
   subgraph adminData["服務 / 系統"]
     direction TB
-    sopTable["`Sop
-頁面：SOP
-id：PK
-title：標題
-category：分類
-status：狀態
-description：說明`"]
-    sopStepTable["`SopStep
-頁面：SOP（步驟）
-id：PK
-sopId：FK
-title：步驟標題
-owner：負責人/角色
-sortOrder：順序
-status：狀態
-description：說明`"]
     roleTable["`Role
-頁面：權限設定
-id：PK
-name：角色名稱
-pagePermissions：頁面權限
-notes：備註
-active：啟用`"]
+欄位｜說明
+頁面｜權限設定
+id｜PK
+name｜角色名稱
+pagePermissions｜頁面權限
+notes｜備註
+active｜啟用`"]
     userTable["`User
-頁面：權限設定
-id：PK
-email：信箱
-name：名稱
-roleId：FK 角色
-pagePermissions：個人權限
-isAdmin：管理員
-active：啟用`"]
+欄位｜說明
+頁面｜權限設定
+id｜PK
+email｜信箱
+name｜名稱
+roleId｜FK 角色
+pagePermissions｜個人權限
+isAdmin｜管理員
+active｜啟用`"]
   end
 
   itemTable -->|"Item.id = SaleLine.itemId"| saleLineTable
@@ -401,7 +389,6 @@ active：啟用`"]
   itemTable -->|"Item.id = EventRegistration.itemId"| registrationTable
   saleTable -->|"Sale.id = EventRegistration.saleId"| registrationTable
 
-  sopTable -->|"Sop.id = SopStep.sopId"| sopStepTable
   roleTable -->|"Role.id = User.roleId"| userTable
 ```
 
@@ -447,7 +434,6 @@ active：啟用`"]
 | 活動管理 | EventRegistration.saleId | 同步營收單 | 營收登記 | Sale.id | 營收單 ID | 同步關聯；付款後建立 Sale 並回寫 saleId。 |
 | 活動管理 | EventRegistration.paidAmount | 報名付款金額 | 營收登記 | Sale.total、SaleLine.lineTotal | 營收金額 | 同步產生；付款金額寫入營收主檔與明細。 |
 | 活動管理 | EventRegistration.paymentMethod | 報名付款方式 | 營收登記 | Sale.paymentMethod | 營收付款方式 | 同步產生；活動付款方式進入營收與月報表。 |
-| SOP | Sop.id | SOP 主檔 ID | SOP | SopStep.sopId | SOP 步驟所屬主檔 | 一對多；一份 SOP 可有多個步驟。 |
 | 權限設定 | Role.id | 角色 ID | 權限設定 | User.roleId | 使用者角色 | 外鍵；使用者可套用角色。 |
 | 權限設定 | Role.pagePermissions | 角色頁面權限 | 全部受保護頁面/API | pagePermissions | 可操作頁面/API | 權限控制；角色提供預設權限。 |
 | 權限設定 | User.pagePermissions | 使用者頁面權限 | 全部受保護頁面/API | pagePermissions | 可操作頁面/API | 權限控制；使用者可覆寫頁面權限。 |

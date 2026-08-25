@@ -32,6 +32,7 @@ const delegateMap = {
 } as Record<string, Delegate>;
 
 const includeMap: Record<string, Record<string, unknown>> = {
+  items: { lampPrice: true },
   events: { items: { orderBy: { createdAt: "asc" } } },
   inventory: { item: true },
   "petty-cash": { employee: true },
@@ -112,7 +113,7 @@ export function normalizeData(module: ApiModule, body: Record<string, unknown>) 
     }
   }
   if (module.slug === "items") {
-    if (data.type === "OIL_DONATION") {
+    if (data.type === "OIL_DONATION" || data.type === "LIGHTING_SERVICE") {
       data.requiresInventory = false;
     }
     for (const key of ["price", "cost"]) {
