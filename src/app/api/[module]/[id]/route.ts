@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireApiModulePermission } from "@/lib/api-auth";
 import { apiError, getApiModule, normalizeData } from "@/lib/api-modules";
 import { prisma } from "@/lib/prisma";
+import { lampDefinition } from "@/lib/lighting-items";
 
 type Context = {
   params: Promise<{ module: string; id: string }>;
@@ -22,7 +23,8 @@ const eventItemTypes = new Set([
   "FENG_SHUI_SERVICE",
   "COURSE_SERVICE",
   "OIL_DONATION",
-  "PHYSICAL_PRODUCT"
+  "PHYSICAL_PRODUCT",
+  "LIGHTING_SERVICE"
 ]);
 
 type EventItemData = {
@@ -61,8 +63,9 @@ function buildEventItemData(raw: Record<string, unknown>, eventTitle: string): E
   const itemPrice = numberValue(raw.itemPrice ?? raw.price);
   const itemCost = numberValue(raw.itemCost ?? raw.cost);
   const servicePersonId = textValue(raw.servicePersonId);
-  const requiresInventory =
-    itemTypeValue === "OIL_DONATION" ? false : booleanValue(raw.itemRequiresInventory ?? raw.requiresInventory);
+  const requiresInventory = ["OIL_DONATION", "LIGHTING_SERVICE"].includes(itemTypeValue)
+    ? false
+    : booleanValue(raw.itemRequiresInventory ?? raw.requiresInventory);
   const inventoryQuantity = numberValue(raw.itemInventoryQuantity ?? raw.inventoryQuantity);
   const active = raw.active === undefined ? true : booleanValue(raw.active);
   const hasInput =
@@ -443,6 +446,31 @@ export async function PATCH(request: NextRequest, context: Context) {
       return apiError("活動報名儲存失敗，請確認付款金額。", 500);
     }
   }
+  if (slug === "items") {
+    const linkedPrice = await prisma.lampPrice.findUnique({ where: { itemId: id } });
+    if (linkedPrice) {
+      const definition = lampDefinition(linkedPrice.type);
+      if (!definition) return apiError("找不到點燈類型設定。", 409);
+      const nextPrice = typeof data.price === "number" ? data.price : Number(linkedPrice.price);
+      const record = await prisma.$transaction(async (tx) => {
+        await tx.lampPrice.update({ where: { id: linkedPrice.id }, data: { price: nextPrice } });
+        return tx.item.update({
+          where: { id },
+          data: {
+            type: "LIGHTING_SERVICE",
+            name: definition.label,
+            price: nextPrice,
+            cost: typeof data.cost === "number" ? data.cost : 0,
+            requiresInventory: false,
+            active: true,
+            notes: data.notes == null ? null : String(data.notes)
+          },
+          include: { lampPrice: true }
+        });
+      });
+      return NextResponse.json(record);
+    }
+  }
   const record = await module.delegate.update({
     where: { id },
     data,
@@ -470,6 +498,10 @@ export async function DELETE(_request: NextRequest, context: Context) {
 
   if (slug === "items") {
     try {
+      const linkedPrice = await prisma.lampPrice.findUnique({ where: { itemId: id }, select: { id: true } });
+      if (linkedPrice) {
+        return apiError("此品項與點燈價格設定連動，不可刪除。", 409);
+      }
       const saleLineCount = await prisma.saleLine.count({ where: { itemId: id } });
       if (saleLineCount > 0) {
         return apiError(`此品項已有 ${saleLineCount} 筆營收登記，不可刪除。`, 409);

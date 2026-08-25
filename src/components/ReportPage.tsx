@@ -97,6 +97,7 @@ const itemTypeLabels: Record<string, string> = {
   COURSE_SERVICE: "課程服務",
   OIL_DONATION: "香油捐贈",
   PHYSICAL_PRODUCT: "實體商品",
+  LIGHTING_SERVICE: "點燈服務",
   SERVICE: "占卜服務",
   PRODUCT: "實體商品"
 };

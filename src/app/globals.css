@@ -78,6 +78,13 @@ button {
   border-bottom: 1px solid #edf0f2;
 }
 
+.erp-header-user {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .page-heading {
   margin-bottom: 16px;
 }
@@ -231,8 +238,9 @@ button {
 .sales-form-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, 180px);
-  gap: 14px 18px;
+  gap: 16px 24px;
   align-items: end;
+  margin-bottom: 18px;
 }
 
 .sales-form-grid .ant-form-item {

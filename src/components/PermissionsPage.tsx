@@ -138,6 +138,15 @@ export function PermissionsPage() {
 
   async function submitUser() {
     setError("");
+    const password = userForm.password.trim();
+    if (!editingUserId && password.length < 6) {
+      setError("建立帳號時請填寫至少 6 碼密碼。");
+      return;
+    }
+    if (editingUserId && password && password.length < 6) {
+      setError("新密碼至少需要 6 碼。");
+      return;
+    }
     const response = await fetch(editingUserId ? `/api/permissions/users/${editingUserId}` : "/api/permissions", {
       method: editingUserId ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
@@ -321,10 +330,10 @@ export function PermissionsPage() {
             </Form.Item>
           </Form>
         </Modal>
-        <Card title="建立帳號">
+        <Card title={editingUserId ? "編輯帳號" : "建立帳號"}>
           <Form layout="vertical">
             <Row gutter={12} align="bottom">
-              <Col xs={24} md={editingUserId ? 12 : 8}>
+              <Col xs={24} md={8}>
                 <Form.Item label="Email" required>
                   <Input
                     type="email"
@@ -334,18 +343,21 @@ export function PermissionsPage() {
                   />
                 </Form.Item>
               </Col>
-              {!editingUserId && (
-                <Col xs={24} md={8}>
-                  <Form.Item label="密碼" required>
-                    <Input.Password
-                      value={userForm.password}
-                      minLength={6}
-                      onChange={(event) => setUserForm({ ...userForm, password: event.target.value })}
-                    />
-                  </Form.Item>
-                </Col>
-              )}
-              <Col xs={24} md={editingUserId ? 12 : 8}>
+              <Col xs={24} md={8}>
+                <Form.Item
+                  label={editingUserId ? "新密碼" : "密碼"}
+                  required={!editingUserId}
+                  extra={editingUserId ? "不填則保留原密碼。" : undefined}
+                >
+                  <Input.Password
+                    value={userForm.password}
+                    minLength={6}
+                    placeholder={editingUserId ? "選填，至少 6 碼" : "至少 6 碼"}
+                    onChange={(event) => setUserForm({ ...userForm, password: event.target.value })}
+                  />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={8}>
                 <Form.Item label="角色" required>
                   <Select
                     value={userForm.roleId || undefined}

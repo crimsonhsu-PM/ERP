@@ -34,6 +34,8 @@ const pettyCashEmployeeTags = new Set(["內部員工", "外部員工"]);
 const fixedExpenseSystemSalaryTag = "外部員工";
 const fixedExpenseDailySalary = 1000;
 const oilDonationItemType = "OIL_DONATION";
+const lightingServiceItemType = "LIGHTING_SERVICE";
+const nonInventoryItemTypes = new Set([oilDonationItemType, lightingServiceItemType]);
 const paymentMethodLabels = new Map(paymentMethods.map((method) => [method.value, method.label]));
 const moneyFieldNames = new Set([
   "amount",
@@ -56,6 +58,7 @@ type BatchItemRow = {
   inventoryQuantity: number;
   notes: string;
   active: boolean;
+  lightingLinked: boolean;
 };
 type BatchInventoryRow = {
   itemId: string;
@@ -81,7 +84,8 @@ function createBatchRow(type = "DIVINATION_SERVICE") {
     requiresInventory: false,
     inventoryQuantity: 0,
     notes: "",
-    active: true
+    active: true,
+    lightingLinked: false
   };
 }
 
@@ -134,6 +138,7 @@ function renderValue(config: ModuleConfig, record: DataRecord, column: string) {
     COURSE_SERVICE: "課程服務",
     OIL_DONATION: "香油捐贈",
     PHYSICAL_PRODUCT: "實體商品",
+    LIGHTING_SERVICE: "點燈服務",
     PRODUCT: "實體商品",
     SERVICE: "占卜服務",
     CASH: "現金",
@@ -608,7 +613,7 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
         servicePersonId: row.servicePersonId || null,
         itemRequiresInventory: row.type === oilDonationItemType ? false : row.requiresInventory,
         itemInventoryQuantity:
-          row.type !== oilDonationItemType && row.requiresInventory ? Number(row.inventoryQuantity ?? 0) : 0,
+          !nonInventoryItemTypes.has(row.type) && row.requiresInventory ? Number(row.inventoryQuantity ?? 0) : 0,
         active: row.active
       }));
     }
@@ -697,10 +702,11 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
           price: record.price == null || record.price === "" ? null : Number(record.price),
           cost: Number(record.cost ?? 0),
           servicePersonId: String(record.servicePersonId ?? ""),
-          requiresInventory: record.type === oilDonationItemType ? false : Boolean(record.requiresInventory),
+          requiresInventory: nonInventoryItemTypes.has(String(record.type)) ? false : Boolean(record.requiresInventory),
           inventoryQuantity: Number(record.stockQuantity ?? 0),
           notes: String(record.notes ?? ""),
-          active: record.active !== false
+          active: record.active !== false,
+          lightingLinked: Boolean(record.lampPrice)
         }
       ]);
     }
@@ -714,10 +720,11 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
           price: item.type === oilDonationItemType ? null : Number(item.price ?? 0),
           cost: Number(item.cost ?? 0),
           servicePersonId: String(item.servicePersonId ?? ""),
-          requiresInventory: item.type === oilDonationItemType ? false : Boolean(item.requiresInventory),
+          requiresInventory: nonInventoryItemTypes.has(String(item.type)) ? false : Boolean(item.requiresInventory),
           inventoryQuantity: 0,
           notes: String(item.notes ?? ""),
-          active: item.active !== false
+          active: item.active !== false,
+          lightingLinked: false
         }))
       );
     }
@@ -831,7 +838,8 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
   function updateBatchRowType(index: number, type: string) {
     updateBatchRow(index, {
       type,
-      ...(type === oilDonationItemType ? { price: null, requiresInventory: false, inventoryQuantity: 0 } : {})
+      ...(type === oilDonationItemType ? { price: null } : {}),
+      ...(nonInventoryItemTypes.has(type) ? { requiresInventory: false, inventoryQuantity: 0 } : {})
     });
   }
 
@@ -911,7 +919,7 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
             name: row.name,
             price: row.price ?? 0,
             cost: row.cost,
-            requiresInventory: row.type === oilDonationItemType ? false : row.requiresInventory,
+            requiresInventory: nonInventoryItemTypes.has(row.type) ? false : row.requiresInventory,
             notes: row.notes,
             active: row.active
           })
@@ -936,7 +944,7 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
             name: row.name,
             price: row.price ?? 0,
             cost: row.cost,
-            requiresInventory: row.type === oilDonationItemType ? false : row.requiresInventory,
+            requiresInventory: nonInventoryItemTypes.has(row.type) ? false : row.requiresInventory,
             notes: row.notes,
             active: true
           })
@@ -947,7 +955,7 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
           return;
         }
         const item = await parseJsonResponse(response);
-        if (row.type !== oilDonationItemType && row.requiresInventory && row.inventoryQuantity > 0) {
+        if (!nonInventoryItemTypes.has(row.type) && row.requiresInventory && row.inventoryQuantity > 0) {
           const itemId = item && typeof item === "object" && "id" in item ? String(item.id) : "";
           if (!itemId) {
             setError(`庫存建立失敗：${row.name}`);
@@ -1545,7 +1553,7 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
                       />
                       <Checkbox
                         checked={row.requiresInventory}
-                        disabled={row.type === oilDonationItemType}
+                        disabled={nonInventoryItemTypes.has(row.type)}
                         onChange={(event) =>
                           updateBatchRow(index, {
                             requiresInventory: event.target.checked,
@@ -1555,7 +1563,7 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
                       >
                         庫存
                       </Checkbox>
-                      {row.type !== oilDonationItemType && row.requiresInventory ? (
+                      {!nonInventoryItemTypes.has(row.type) && row.requiresInventory ? (
                         <InputNumber
                           min={1}
                           disabled={Boolean(row.id)}
@@ -1751,12 +1759,14 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
                 <Typography.Text type="secondary">{index + 1}</Typography.Text>
                 <Select
                   value={row.type}
+                  disabled={row.lightingLinked}
                   onChange={(value) => updateBatchRowType(index, value)}
                   options={itemTypeOptions}
                 />
                 <Input
                   placeholder="名稱"
                   value={row.name}
+                  disabled={row.lightingLinked}
                   onChange={(event) => updateBatchRow(index, { name: event.target.value })}
                 />
                 <InputNumber
@@ -1769,12 +1779,12 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
                 />
                 <Checkbox
                   checked={row.requiresInventory}
-                  disabled={row.type === oilDonationItemType}
+                  disabled={nonInventoryItemTypes.has(row.type) || row.lightingLinked}
                   onChange={(event) => updateBatchRow(index, { requiresInventory: event.target.checked })}
                 >
                   庫存
                 </Checkbox>
-                {row.type !== oilDonationItemType && row.requiresInventory ? (
+                {!nonInventoryItemTypes.has(row.type) && row.requiresInventory ? (
                   <InputNumber
                     min={1}
                     placeholder="庫存數量"

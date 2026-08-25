@@ -12,6 +12,7 @@ export const pagePermissions = [
   { key: "petty-cash", label: "零用支出", href: "/petty-cash", group: "資產" },
   { key: "fixed-expenses", label: "固定支出", href: "/fixed-expenses", group: "資產" },
   { key: "events", label: "活動管理", href: "/events", group: "活動" },
+  { key: "lighting", label: "點燈紀錄", href: "/lighting", group: "服務" },
   { key: "sops", label: "SOP", href: "/sops", group: "服務" },
   { key: "customer-service-records", label: "客服紀錄", href: "/customer-service-records", group: "服務" },
   { key: "permissions", label: "權限設定", href: "/permissions", group: "系統" }

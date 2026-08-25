@@ -7,5 +7,12 @@ export default async function ErpLayout({ children }: { children: React.ReactNod
   const user = await getSessionUser();
   if (!user) redirect("/login");
 
-  return <AppShell userPermissions={userPermissionKeys(user)}>{children}</AppShell>;
+  return (
+    <AppShell
+      user={{ name: user.name, email: user.email }}
+      userPermissions={userPermissionKeys(user)}
+    >
+      {children}
+    </AppShell>
+  );
 }
