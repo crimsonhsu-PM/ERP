@@ -8,8 +8,10 @@ import {
   FileTextOutlined,
   FireOutlined,
   LogoutOutlined,
+  MoonOutlined,
   SettingOutlined,
   ShopOutlined,
+  SunOutlined,
   TeamOutlined,
   UserOutlined,
   WalletOutlined
@@ -18,6 +20,7 @@ import { Button, Layout, Menu, Space, Typography } from "antd";
 import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { pagePermissions } from "@/lib/permissions";
+import { useAppTheme } from "@/components/AppThemeProvider";
 
 type NavGroup = {
   label: string;
@@ -95,6 +98,7 @@ export function AppShell({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { mode, toggleMode } = useAppTheme();
   const hrefPermissionMap = new Map<string, string>(pagePermissions.map((permission) => [permission.href, permission.key]));
   const allowedGroups = groups
     .map((group) => ({
@@ -140,7 +144,7 @@ export function AppShell({
       <Layout.Sider width={260} breakpoint="lg" collapsedWidth={0}>
         <div className="erp-logo">UNV.PLAN ERP</div>
         <Menu
-          theme="light"
+          theme={mode === "dark" ? "dark" : "light"}
           mode="inline"
           selectedKeys={[pathname]}
           defaultOpenKeys={allowedGroups.map((group) => group.label)}
@@ -154,6 +158,14 @@ export function AppShell({
             <Typography.Text className="erp-header-user">
               {user.email}
             </Typography.Text>
+            <Button
+              className="erp-theme-toggle"
+              icon={mode === "light" ? <MoonOutlined /> : <SunOutlined />}
+              onClick={toggleMode}
+              aria-label={mode === "light" ? "切換為深色模式" : "切換為藍白模式"}
+            >
+              {mode === "light" ? "深色" : "藍白"}
+            </Button>
             <Button icon={<LogoutOutlined />} onClick={logout}>
               登出
             </Button>

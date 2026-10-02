@@ -145,6 +145,7 @@ model Sale {
   salesPerson     Employee?     @relation("SalesPersonSales", fields: [salesPersonId], references: [id])
   servicePerson   Employee?     @relation("ServicePersonSales", fields: [servicePersonId], references: [id])
   lines           SaleLine[]
+  inventoryMovements InventoryMovement[]
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 }
@@ -163,12 +164,16 @@ model SaleLine {
 model InventoryMovement {
   id        String                @id @default(cuid())
   itemId    String
+  saleId    String?
   type      InventoryMovementType
   quantity  Int
   reason    String?
   movedAt   DateTime              @default(now())
   item      Item                  @relation(fields: [itemId], references: [id])
+  sale      Sale?                 @relation(fields: [saleId], references: [id], onDelete: Cascade)
   createdAt DateTime              @default(now())
+
+  @@index([saleId])
 }
 
 model Asset {

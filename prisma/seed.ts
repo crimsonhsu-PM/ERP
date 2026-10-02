@@ -155,7 +155,7 @@ async function main() {
     }
   });
 
-  await prisma.sale.create({
+  const demoSale = await prisma.sale.create({
     data: {
       customerName: customer.name,
       paymentMethod: "CASH",
@@ -176,7 +176,9 @@ async function main() {
       itemId: product.id,
       type: "SALE",
       quantity: -1,
-      reason: "種子銷售扣庫存"
+      reason: "種子銷售扣庫存",
+      saleId: demoSale.id,
+      movedAt: demoSale.soldAt
     }
   });
 

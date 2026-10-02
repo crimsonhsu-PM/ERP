@@ -30,7 +30,7 @@ export async function DELETE(_request: Request, context: Context) {
 
   const { id } = await context.params;
   await prisma.$transaction([
-    prisma.inventoryMovement.deleteMany({ where: { reason: `銷售單 ${id}` } }),
+    prisma.inventoryMovement.deleteMany({ where: { saleId: id } }),
     prisma.sale.delete({ where: { id } })
   ]);
   return NextResponse.json({ ok: true });
@@ -57,7 +57,7 @@ export async function PATCH(request: NextRequest, context: Context) {
 
   const sale = await prisma.$transaction(async (tx) => {
     await tx.saleLine.deleteMany({ where: { saleId: id } });
-    await tx.inventoryMovement.deleteMany({ where: { reason: `銷售單 ${id}` } });
+    await tx.inventoryMovement.deleteMany({ where: { saleId: id } });
 
     const updatedSale = await tx.sale.update({
       where: { id },
@@ -94,6 +94,7 @@ export async function PATCH(request: NextRequest, context: Context) {
           data: {
             itemId: line.itemId,
             type: "SALE",
+            saleId: updatedSale.id,
             quantity: -line.quantity,
             reason: `銷售單 ${updatedSale.id}`,
             movedAt: updatedSale.soldAt

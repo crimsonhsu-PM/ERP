@@ -15,17 +15,20 @@ export default async function DashboardPage() {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
   }
 
-  const [todaySales, monthSales, monthSaleLines] =
+  const [todaySales, monthSales, saleLines, items] =
     await Promise.all([
       prisma.sale.findMany({ where: { status: "CLOSED", soldAt: { gte: dayStart, lt: dayEnd } } }),
       prisma.sale.findMany({ where: { status: "CLOSED", soldAt: { gte: monthStart, lt: monthEnd } } }),
-      prisma.saleLine.findMany({
-        where: {
-          sale: { status: "CLOSED", soldAt: { gte: monthStart, lt: monthEnd } }
-        },
-        include: { item: true }
-      })
+      prisma.saleLine.findMany(),
+      prisma.item.findMany()
     ]);
+
+  const monthSaleIds = new Set(monthSales.map((sale) => sale.id));
+  const itemById = new Map(items.map((item) => [item.id, item]));
+  const monthSaleLines = saleLines.flatMap((line) => {
+    const item = itemById.get(line.itemId);
+    return monthSaleIds.has(line.saleId) && item ? [{ ...line, item }] : [];
+  });
 
   const todayRevenue = todaySales.reduce((sum, sale) => sum + Number(sale.total), 0);
   const monthRevenue = monthSales.reduce((sum, sale) => sum + Number(sale.total), 0);

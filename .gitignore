@@ -12,3 +12,4 @@ prisma/dev.db-journal
 tsconfig.tsbuildinfo
 .DS_Store
 .sites-demo/
+.local-backups/

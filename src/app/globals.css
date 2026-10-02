@@ -1,13 +1,48 @@
 :root {
-  --bg: #f6f7f8;
+  --bg: #f5f7fa;
   --panel: #ffffff;
   --text: #202124;
   --muted: #646b73;
-  --line: #dce1e6;
+  --line: #edf0f2;
   --brand: #126a7a;
   --brand-dark: #0a4f5c;
   --accent: #c16b2f;
   --danger: #b3261e;
+  --sidebar-bg: #eaf6ff;
+  --sidebar-logo-bg: #dff2ff;
+  --sidebar-line: #c8e8ff;
+  --sidebar-text: #075c78;
+  --soft-bg: #f6fbff;
+  --soft-border: #d8e7f3;
+  --soft-text: #075985;
+  --subtle-bg: #fafafa;
+  --hover-bg: #f5fbff;
+  --chart-track: #eef1f4;
+  --chart-track-active: #e2f3f7;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #101820;
+  --panel: #18242e;
+  --text: #edf4f8;
+  --muted: #9babb5;
+  --line: #31414e;
+  --brand: #2b91ad;
+  --brand-dark: #77d4ea;
+  --accent: #d9905d;
+  --danger: #ff7875;
+  --sidebar-bg: #111d27;
+  --sidebar-logo-bg: #142733;
+  --sidebar-line: #293d4b;
+  --sidebar-text: #77d4ea;
+  --soft-bg: #182b37;
+  --soft-border: #315064;
+  --soft-text: #91d5ff;
+  --subtle-bg: #202e39;
+  --hover-bg: #19313e;
+  --chart-track: #293944;
+  --chart-track-active: #21485a;
 }
 
 * {
@@ -18,7 +53,7 @@ html,
 body {
   margin: 0;
   min-height: 100%;
-  background: #f5f7fa;
+  background: var(--bg);
   color: var(--text);
   font-family: Arial, "Noto Sans TC", sans-serif;
   letter-spacing: 0;
@@ -53,17 +88,25 @@ button {
 }
 
 .erp-logo {
-  color: #075c78;
+  color: var(--sidebar-text);
   font-size: 18px;
   font-weight: 700;
   padding: 18px 20px;
   white-space: nowrap;
-  background: #dff2ff;
-  border-bottom: 1px solid #c8e8ff;
+  background: var(--sidebar-logo-bg);
+  border-bottom: 1px solid var(--sidebar-line);
 }
 
 .ant-layout-sider {
-  border-right: 1px solid #c8e8ff;
+  border-right: 1px solid var(--sidebar-line);
+}
+
+.ant-layout-sider-zero-width-trigger {
+  width: 32px !important;
+  height: 32px !important;
+  inset-inline-end: -32px !important;
+  font-size: 14px !important;
+  line-height: 32px !important;
 }
 
 .erp-content {
@@ -75,7 +118,7 @@ button {
   justify-content: flex-end;
   align-items: center;
   padding-inline: 24px;
-  border-bottom: 1px solid #edf0f2;
+  border-bottom: 1px solid var(--line);
 }
 
 .erp-header-user {
@@ -95,7 +138,7 @@ button {
 
 .page-heading p {
   margin: 6px 0 0;
-  color: rgba(0, 0, 0, 0.55);
+  color: var(--muted);
 }
 
 .module-tabs > .ant-tabs-nav {
@@ -103,7 +146,7 @@ button {
 }
 
 .module-tabs.ant-tabs-card > .ant-tabs-nav::before {
-  border-bottom-color: #d8e7f3;
+  border-bottom-color: var(--soft-border);
 }
 
 .module-tabs.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab {
@@ -111,15 +154,15 @@ button {
   justify-content: center;
   margin: 0 6px 0 0;
   padding: 8px 16px;
-  border-color: #d8e7f3;
+  border-color: var(--soft-border);
   border-radius: 8px 8px 0 0;
-  background: #f6fbff;
-  color: #475569;
+  background: var(--soft-bg);
+  color: var(--muted);
 }
 
 .module-tabs.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab-active {
-  background: #fff;
-  border-bottom-color: #fff;
+  background: var(--panel);
+  border-bottom-color: var(--panel);
 }
 
 .module-tabs.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab-active .ant-tabs-tab-btn {
@@ -216,7 +259,7 @@ button {
   grid-column: 1 / -1;
   margin: 4px 0 14px;
   padding-top: 12px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--line);
 }
 
 .event-item-batch .batch-item-grid {
@@ -325,9 +368,9 @@ button {
   gap: 8px;
   margin-bottom: 12px;
   padding: 10px 12px;
-  border: 1px solid #e6f4ff;
+  border: 1px solid var(--soft-border);
   border-radius: 8px;
-  background: #f6fbff;
+  background: var(--soft-bg);
 }
 
 .shift-workday-list {
@@ -354,29 +397,29 @@ button {
   gap: 8px;
   min-height: 30px;
   padding: 4px 10px;
-  border: 1px solid #bae0ff;
+  border: 1px solid var(--soft-border);
   border-radius: 999px;
-  background: #fff;
-  color: #0f172a;
+  background: var(--panel);
+  color: var(--text);
   line-height: 1.2;
 }
 
 .shift-workday-chip strong {
-  color: #075985;
+  color: var(--soft-text);
 }
 
 .shift-calendar-grid {
   display: grid;
   overflow: hidden;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  border: 1px solid #edf0f3;
+  border: 1px solid var(--line);
   border-radius: 8px;
 }
 
 .shift-weekday-cell {
   padding: 10px 8px;
-  border-right: 1px solid #edf0f3;
-  background: #fafafa;
+  border-right: 1px solid var(--line);
+  background: var(--subtle-bg);
   font-weight: 700;
   text-align: center;
 }
@@ -398,9 +441,9 @@ button {
   min-height: 112px;
   padding: 8px;
   border: 0;
-  border-top: 1px solid #edf0f3;
-  border-right: 1px solid #edf0f3;
-  background: #fff;
+  border-top: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+  background: var(--panel);
 }
 
 .shift-calendar-week > .shift-calendar-empty-cell:last-child,
@@ -417,7 +460,7 @@ button {
 }
 
 .shift-calendar-day:hover {
-  background: #f5fbff;
+  background: var(--hover-bg);
 }
 
 .shift-calendar-day-header {
@@ -434,8 +477,8 @@ button {
   height: 24px;
   padding: 0 6px;
   border-radius: 999px;
-  background: #e6f4ff;
-  color: #075985;
+  background: var(--soft-bg);
+  color: var(--soft-text);
   font-weight: 700;
   line-height: 24px;
   text-align: center;
@@ -449,9 +492,9 @@ button {
   width: 20px;
   min-width: 20px;
   height: 20px;
-  color: rgba(7, 89, 133, 0.42);
-  background: rgba(255, 255, 255, 0.82);
-  border: 1px solid rgba(186, 230, 253, 0.78);
+  color: color-mix(in srgb, var(--soft-text) 52%, transparent);
+  background: color-mix(in srgb, var(--panel) 82%, transparent);
+  border: 1px solid color-mix(in srgb, var(--soft-border) 78%, transparent);
   box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
 }
 
@@ -460,9 +503,9 @@ button {
 }
 
 .shift-add-button.ant-btn:hover {
-  color: rgba(7, 89, 133, 0.82);
-  background: #fff;
-  border-color: #7dd3fc;
+  color: var(--soft-text);
+  background: var(--panel);
+  border-color: var(--brand);
   box-shadow: 0 4px 10px rgba(14, 116, 144, 0.16);
 }
 
@@ -501,7 +544,7 @@ button {
   display: grid;
   min-width: 0;
   gap: 3px;
-  color: #075985;
+  color: var(--soft-text);
   font-size: 12px;
   line-height: 1.35;
 }
@@ -543,9 +586,9 @@ button {
   display: grid;
   gap: 8px;
   padding: 10px;
-  border: 1px solid #edf0f3;
+  border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fafafa;
+  background: var(--subtle-bg);
 }
 
 .shift-existing-row {
@@ -653,7 +696,7 @@ button {
   height: 150px;
   align-items: end;
   border-radius: 6px;
-  background: #eef1f4;
+  background: var(--chart-track);
   overflow: hidden;
   outline: 1px solid transparent;
   transition: outline-color 160ms ease, background 160ms ease;
@@ -662,7 +705,7 @@ button {
 .daily-revenue-bar-cell:hover .daily-revenue-bar-wrap,
 .daily-revenue-bar-cell-active .daily-revenue-bar-wrap {
   outline-color: #0b7f95;
-  background: #e2f3f7;
+  background: var(--chart-track-active);
 }
 
 .daily-revenue-bar {
@@ -716,7 +759,7 @@ button {
 }
 
 .revenue-share-pie-bg {
-  stroke: #eef1f4;
+  stroke: var(--chart-track);
 }
 
 .revenue-share-pie-segment {
@@ -742,8 +785,8 @@ button {
   justify-content: center;
   text-align: center;
   border-radius: 50%;
-  background: #fff;
-  box-shadow: inset 0 0 0 1px #edf0f2;
+  background: var(--panel);
+  box-shadow: inset 0 0 0 1px var(--line);
 }
 
 .revenue-share-chart {
@@ -788,7 +831,7 @@ button {
 
 .revenue-share-child-row {
   grid-template-columns: 0 minmax(130px, 210px) minmax(120px, 1fr) 76px;
-  color: #4b5563;
+  color: var(--muted);
 }
 
 .revenue-share-rank {
@@ -826,7 +869,7 @@ button {
   height: 16px;
   overflow: hidden;
   border-radius: 999px;
-  background: #eef1f4;
+  background: var(--chart-track);
 }
 
 .revenue-share-bar {
@@ -853,9 +896,9 @@ button {
   padding: 10px 14px;
   flex-direction: column;
   gap: 6px;
-  border: 1px solid #d8e7f3;
+  border: 1px solid var(--soft-border);
   border-radius: 8px;
-  background: #f5fbff;
+  background: var(--soft-bg);
 }
 
 .petty-cash-balance .ant-picker {

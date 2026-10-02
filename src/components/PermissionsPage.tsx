@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { PlusOutlined } from "@ant-design/icons";
-import { Alert, Button, Card, Checkbox, Col, Form, Input, Modal, Row, Select, Space, Switch, Table, Tag, Tree, Typography } from "antd";
+import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
+import { Alert, Button, Card, Checkbox, Col, Form, Input, Modal, Popconfirm, Row, Select, Space, Switch, Table, Tag, Tree, Typography } from "antd";
 
 type PagePermission = {
   key: string;
@@ -178,6 +178,18 @@ export function PermissionsPage() {
     await load();
   }
 
+  async function deleteUser(user: UserRecord) {
+    if (user.isAdmin) return;
+    setError("");
+    const response = await fetch(`/api/permissions/users/${user.id}`, { method: "DELETE" });
+    const data = await parseJsonResponse(response);
+    if (!response.ok) {
+      setError(errorMessage(data, "帳號刪除失敗。"));
+      return;
+    }
+    await load();
+  }
+
   async function toggleRoleActive(role: RoleRecord, active: boolean) {
     if (role.name === "Admin") return;
     setError("");
@@ -229,6 +241,7 @@ export function PermissionsPage() {
   }
 
   function editUser(user: UserRecord) {
+    setError("");
     setEditingUserId(user.id);
     setUserForm({
       email: user.email,
@@ -299,6 +312,7 @@ export function PermissionsPage() {
             setRoleForm(emptyRoleForm);
           }}
         >
+          {error && <Alert type="error" message={error} showIcon style={{ marginBottom: 16 }} />}
           <Form layout="vertical">
             <Form.Item label="角色名稱" required>
               <Input value={roleForm.name} onChange={(event) => setRoleForm({ ...roleForm, name: event.target.value })} />
@@ -330,7 +344,7 @@ export function PermissionsPage() {
             </Form.Item>
           </Form>
         </Modal>
-        <Card title={editingUserId ? "編輯帳號" : "建立帳號"}>
+        {!editingUserId && <Card title="建立帳號">
           <Form layout="vertical">
             <Row gutter={12} align="bottom">
               <Col xs={24} md={8}>
@@ -412,7 +426,7 @@ export function PermissionsPage() {
               </Form.Item>
             )}
           </Form>
-        </Card>
+        </Card>}
         <Table
           rowKey="id"
           size="small"
@@ -436,10 +450,81 @@ export function PermissionsPage() {
             {
               title: "操作",
               render: (_: unknown, user: UserRecord) =>
-                user.isAdmin ? "最高權限" : <Button onClick={() => editUser(user)}>編輯</Button>
+                user.isAdmin ? "最高權限" : (
+                  <Space size={4}>
+                    <Button onClick={() => editUser(user)}>編輯</Button>
+                    <Popconfirm
+                      title={`確定移除 ${user.email}？`}
+                      description="移除後此帳號將無法登入。"
+                      okText="移除"
+                      cancelText="取消"
+                      okButtonProps={{ danger: true }}
+                      onConfirm={() => deleteUser(user)}
+                    >
+                      <Button danger icon={<DeleteOutlined />} aria-label={`移除 ${user.email}`} />
+                    </Popconfirm>
+                  </Space>
+                )
             }
           ]}
         />
+        <Modal
+          title="編輯帳號"
+          open={Boolean(editingUserId)}
+          okText="更新帳號"
+          cancelText="取消"
+          width={640}
+          onOk={submitUser}
+          onCancel={() => {
+            setEditingUserId(null);
+            setUserForm(emptyUserForm);
+            setError("");
+          }}
+          destroyOnHidden
+        >
+          {error && <Alert type="error" message={error} showIcon style={{ marginBottom: 16 }} />}
+          <Form layout="vertical">
+            <Form.Item label="Email" required>
+              <Input type="email" value={userForm.email} disabled />
+            </Form.Item>
+            <Form.Item label="新密碼" extra="不填則保留原密碼。">
+              <Input.Password
+                value={userForm.password}
+                minLength={6}
+                placeholder="選填，至少 6 碼"
+                onChange={(event) => setUserForm({ ...userForm, password: event.target.value })}
+              />
+            </Form.Item>
+            <Form.Item label="角色" required>
+              <Select
+                value={userForm.roleId || undefined}
+                options={roles.filter((role) => role.active).map((role) => ({ label: role.name, value: role.id }))}
+                onChange={(roleId) => setUserForm({ ...userForm, roleId })}
+              />
+            </Form.Item>
+            <Form.Item>
+              <Checkbox
+                checked={userForm.active}
+                onChange={(event) => setUserForm({ ...userForm, active: event.target.checked })}
+              >
+                啟用
+              </Checkbox>
+            </Form.Item>
+            {userForm.roleId && (
+              <Form.Item label="此帳號將取得的頁面權限">
+                <Space size={[4, 4]} wrap>
+                  {rolePermissions(userForm.roleId)
+                    .filter((permission) => currentUserPermissions.includes(permission))
+                    .map((permission) => (
+                      <Tag key={permission} color="green">
+                        {permissionLabelMap.get(permission) ?? permission}
+                      </Tag>
+                    ))}
+                </Space>
+              </Form.Item>
+            )}
+          </Form>
+        </Modal>
       </Space>
     </>
   );

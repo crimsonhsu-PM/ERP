@@ -184,8 +184,8 @@ export function SalesPage() {
     });
   }
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function submit(event?: FormEvent<HTMLFormElement>) {
+    event?.preventDefault();
     setError("");
     if (!form.salesPersonId) {
       setError("請選擇銷售人員。");
@@ -222,6 +222,7 @@ export function SalesPage() {
   }
 
   function editSale(sale: Sale) {
+    setError("");
     setEditingId(sale.id);
     setForm({
       soldAt: dayjs(sale.soldAt).format("YYYY-MM-DD"),
@@ -238,7 +239,6 @@ export function SalesPage() {
         unitPrice: String(line.lineTotal ? Number(line.lineTotal) / line.quantity : "")
       }))
     );
-    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function cancelEdit() {
@@ -306,7 +306,7 @@ export function SalesPage() {
         <Typography.Text type="secondary">建立每筆營收，服務只記錄收入，商品會自動扣庫存。</Typography.Text>
       </div>
 
-      <Card style={{ marginBottom: 16 }}>
+      {!editingId && <Card style={{ marginBottom: 16 }}>
       <form onSubmit={submit}>
         <Form layout="vertical" component={false}>
         <div className="sales-form-grid">
@@ -445,7 +445,7 @@ export function SalesPage() {
           {editingId && <Button onClick={cancelEdit}>取消修改</Button>}
         </Space>
       </form>
-      </Card>
+      </Card>}
 
       <Card>
         <div style={{ marginBottom: 8 }}>
@@ -524,6 +524,109 @@ export function SalesPage() {
           ]}
         />
       </Card>
+
+      <Modal
+        title="編輯營收"
+        open={Boolean(editingId)}
+        okText="更新"
+        cancelText="取消"
+        width={820}
+        onOk={() => void submit()}
+        onCancel={cancelEdit}
+        destroyOnHidden
+      >
+        <Form layout="vertical">
+          <div className="sales-form-grid">
+            <Form.Item label="銷售日期">
+              <DatePicker
+                style={{ width: "100%" }}
+                value={form.soldAt ? dayjs(form.soldAt) : null}
+                onChange={(date) => setForm({ ...form, soldAt: date ? date.format("YYYY-MM-DD") : todayDate() })}
+              />
+            </Form.Item>
+            <Form.Item label="客戶名稱">
+              <Input value={form.customerName} onChange={(event) => setForm({ ...form, customerName: event.target.value })} />
+            </Form.Item>
+            <Form.Item label="銷售人員" required>
+              <Select
+                showSearch
+                placeholder="請選擇"
+                value={form.salesPersonId || undefined}
+                onChange={(value) => setForm({ ...form, salesPersonId: value })}
+                filterOption={(input, option) => fuzzyIncludes(String(option?.label ?? ""), input)}
+                options={serviceEmployees.map((employee) => ({ value: employee.id, label: employee.name }))}
+              />
+            </Form.Item>
+            <Form.Item label="付款方式">
+              <Select
+                value={form.paymentMethod}
+                onChange={(value) => setForm({ ...form, paymentMethod: value })}
+                options={paymentMethods}
+              />
+            </Form.Item>
+            <Form.Item label="匯款資訊">
+              <Input value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} />
+            </Form.Item>
+          </div>
+          <Card size="small" title="銷售明細">
+            <Space direction="vertical" size={12} style={{ width: "100%" }}>
+              {lines.map((line, index) => {
+                const selectedItem = items.find((item) => item.id === line.itemId);
+                const oilDonation = isOilDonationItem(selectedItem);
+                return (
+                  <Card size="small" key={index}>
+                    <div className="sales-form-grid">
+                      <Form.Item label="品項" required>
+                        <Select
+                          showSearch
+                          value={line.itemId || undefined}
+                          placeholder="請選擇"
+                          onChange={(value) => selectLineItem(index, value)}
+                          filterOption={(input, option) => fuzzyIncludes(`${option?.label ?? ""} ${option?.searchText ?? ""}`, input)}
+                          options={items.map((item) => ({
+                            value: item.id,
+                            label: formatSaleItemLabel(item),
+                            searchText: `${item.name} ${itemTypeLabels[item.type] ?? item.type} ${item.type}`
+                          }))}
+                        />
+                      </Form.Item>
+                      <Form.Item label="服務人員" required={!oilDonation}>
+                        <Select
+                          showSearch
+                          disabled={oilDonation}
+                          placeholder={oilDonation ? "不需填寫" : "請選擇"}
+                          value={line.servicePersonId || undefined}
+                          onChange={(value) => updateLine(index, { servicePersonId: value })}
+                          filterOption={(input, option) => fuzzyIncludes(String(option?.label ?? ""), input)}
+                          options={serviceEmployees.map((employee) => ({ value: employee.id, label: employee.name }))}
+                        />
+                      </Form.Item>
+                      <Form.Item label="數量" required>
+                        <InputNumber
+                          min={1}
+                          style={{ width: "100%" }}
+                          value={line.quantity}
+                          onChange={(value) => updateLine(index, { quantity: Number(value ?? 1) })}
+                        />
+                      </Form.Item>
+                      <Form.Item label="單價" required>
+                        <InputNumber
+                          style={{ width: "100%" }}
+                          formatter={formatInputMoney}
+                          parser={parseInputMoney}
+                          value={line.unitPrice === "" ? null : Number(line.unitPrice)}
+                          onChange={(value) => updateLine(index, { unitPrice: value == null ? "" : String(value) })}
+                        />
+                      </Form.Item>
+                    </div>
+                  </Card>
+                );
+              })}
+            </Space>
+          </Card>
+          {error && <Typography.Text type="danger">{error}</Typography.Text>}
+        </Form>
+      </Modal>
 
       <Modal
         title="匯出營收 Excel"

@@ -86,14 +86,14 @@ SECTIONS = [
                         "api": "/api/sales/:id",
                         "content": "更新營收與明細。",
                         "fields": "soldAt、customerName、salesPersonId、paymentMethod、status、notes、discount、lines[{itemId, servicePersonId, quantity, unitPrice}]。",
-                        "rules": "會先刪除原 SaleLine 與 reason=銷售單 {id} 的庫存異動，再重建明細與庫存扣減；discount 從 subtotal 扣除，total 不小於 0。"
+                        "rules": "會先刪除原 SaleLine 與 saleId={id} 的庫存異動，再重建明細與庫存扣減；reason 僅供顯示；discount 從 subtotal 扣除，total 不小於 0。"
                     },
                     {
                         "method": "DELETE",
                         "api": "/api/sales/:id",
                         "content": "刪除營收單。",
                         "fields": "路徑 id。",
-                        "rules": "會刪除 reason=銷售單 {id} 的庫存異動，再刪 Sale；SaleLine 由 cascade 刪除。"
+                        "rules": "會刪除 saleId={id} 的庫存異動，再刪 Sale；SaleLine 與關聯庫存亦受 cascade 刪除保護。"
                     }
                 ]
             },
@@ -289,7 +289,7 @@ SECTIONS = [
                         "method": "GET",
                         "api": "/api/inventory",
                         "content": "讀取庫存異動紀錄並附加該筆異動後庫存。",
-                        "fields": "id、itemId、type、quantity、movedAt、reason、item、stockQuantity。",
+                        "fields": "id、itemId、saleId、type、quantity、movedAt、reason、item、stockQuantity。",
                         "rules": "需 inventory 權限；stockQuantity 依 itemId、movedAt、createdAt、id 排序累加。"
                     },
                     {
@@ -297,14 +297,14 @@ SECTIONS = [
                         "api": "/api/inventory",
                         "content": "新增庫存異動。",
                         "fields": "itemId、type、quantity、movedAt、reason。",
-                        "rules": "type 為 PURCHASE、SALE、ADJUSTMENT、CONSUMPTION；前端對 SALE/CONSUMPTION 會送負數 quantity。"
+                        "rules": "type 為 PURCHASE、SALE、ADJUSTMENT、CONSUMPTION；前端對 SALE/CONSUMPTION 會送負數 quantity。saleId/sale 由系統管理，手動指定回 400。"
                     },
                     {
                         "method": "PATCH",
                         "api": "/api/inventory/:id",
                         "content": "更新庫存異動。",
                         "fields": "itemId、type、quantity、movedAt、reason。",
-                        "rules": "movedAt 會轉 Date；quantity 會轉 Number。"
+                        "rules": "movedAt 會轉 Date；quantity 會轉 Number。saleId/sale 不可手動修改（400）。"
                     },
                     {
                         "method": "DELETE",
@@ -868,6 +868,10 @@ def build_docx() -> None:
         for page in section["pages"]:
             heading = doc.add_heading(f'{page["name"]}（{page["page"]}）', level=2)
             heading.keep_with_next = True
+            if page["page"] == "/sales":
+                doc.add_paragraph("服務人員欄位對應（2026/10/01 確認）：POST 的 lines[].servicePersonId 是每列輸入欄位；系統逐列建立獨立營收，寫入各自的 Sale.servicePersonId。每筆營收對應一筆明細，SaleLine 不新增服務人員欄位。")
+                doc.add_paragraph("例如占卜選小美、儀式選阿明，會產生營收 A（小美）與營收 B（阿明）。Item.servicePersonId 僅提供預設值；儲存以該列送出的人員為準，報表依 Sale.servicePersonId 歸屬分潤。")
+                doc.add_paragraph("修改 API 現況：若傳入多筆明細，仍只儲存第一筆服務人員。限制單筆明細的後端防呆列入第一點待修改項目，本次僅補文件。")
             add_api_table(doc, page["apis"])
 
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)

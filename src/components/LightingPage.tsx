@@ -1,6 +1,6 @@
 "use client";
 
-import { DeleteOutlined, DollarOutlined, PlusOutlined } from "@ant-design/icons";
+import { DeleteOutlined, DollarOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
 import type { LampType } from "@prisma/client";
 import {
   Alert,
@@ -12,8 +12,11 @@ import {
   InputNumber,
   Modal,
   Popconfirm,
+  Col,
+  Row,
   Select,
   Space,
+  Statistic,
   Table,
   Typography
 } from "antd";
@@ -69,8 +72,10 @@ export function LightingPage() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [addOpen, setAddOpen] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<LampRecord | null>(null);
   const [pricesOpen, setPricesOpen] = useState(false);
   const [addForm] = Form.useForm<AddFormValues>();
+  const [editForm] = Form.useForm<AddFormValues>();
   const [priceForm] = Form.useForm<Record<string, number>>();
 
   const load = useCallback(async (selectedYear: number) => {
@@ -105,6 +110,20 @@ export function LightingPage() {
     setError("");
     setNotice("");
     setPricesOpen(true);
+  }
+
+  function openEdit(record: LampRecord) {
+    setError("");
+    setNotice("");
+    setEditingRecord(record);
+    editForm.setFieldsValue({
+      personName: record.personName ?? "",
+      birthDate: dayjs(record.birthDate),
+      address: record.address ?? "",
+      type: record.type,
+      litDate: dayjs(record.litDate),
+      price: Number(record.price)
+    });
   }
 
   async function addRecord() {
@@ -170,6 +189,43 @@ export function LightingPage() {
     }
   }
 
+  async function updateRecord() {
+    if (!editingRecord) return;
+    let values: AddFormValues;
+    try {
+      values = await editForm.validateFields();
+    } catch {
+      return;
+    }
+    setSaving(true);
+    setError("");
+    try {
+      const response = await fetch(`/api/lighting/${editingRecord.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          personName: values.personName.trim(),
+          birthDate: values.birthDate.format("YYYY-MM-DD"),
+          address: values.address.trim(),
+          type: values.type,
+          litDate: values.litDate.format("YYYY-MM-DD"),
+          price: values.price
+        })
+      });
+      if (!response.ok) {
+        setError(await responseError(response, "更新點燈紀錄失敗。"));
+        return;
+      }
+      const recordYear = values.litDate.year();
+      setEditingRecord(null);
+      setNotice("點燈紀錄已更新。歷史價錢不會影響目前的燈別價格設定。");
+      if (recordYear !== year) setYear(recordYear);
+      else await load(year);
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function deleteRecord(id: string) {
     setError("");
     const response = await fetch(`/api/lighting/${id}`, { method: "DELETE" });
@@ -188,6 +244,13 @@ export function LightingPage() {
   const total = useMemo(
     () => filteredRecords.reduce((sum, record) => sum + Number(record.price), 0),
     [filteredRecords]
+  );
+  const lampTypeCounts = useMemo(
+    () => lampTypes.map((lamp) => ({
+      ...lamp,
+      count: records.reduce((sum, record) => sum + (record.type === lamp.value ? 1 : 0), 0)
+    })),
+    [records]
   );
 
   const columns: ColumnsType<LampRecord> = [
@@ -229,12 +292,15 @@ export function LightingPage() {
     {
       title: "操作",
       key: "actions",
-      width: 90,
+      width: 120,
       align: "center",
       render: (_, record) => (
-        <Popconfirm title="確定刪除這筆點燈紀錄？" okText="刪除" cancelText="取消" onConfirm={() => deleteRecord(record.id)}>
-          <Button type="text" danger icon={<DeleteOutlined />} aria-label="刪除" />
-        </Popconfirm>
+        <Space size={4}>
+          <Button type="text" icon={<EditOutlined />} aria-label="編輯" title="編輯" onClick={() => openEdit(record)} />
+          <Popconfirm title="確定刪除這筆點燈紀錄？" okText="刪除" cancelText="取消" onConfirm={() => deleteRecord(record.id)}>
+            <Button type="text" danger icon={<DeleteOutlined />} aria-label="刪除" />
+          </Popconfirm>
+        </Space>
       )
     }
   ];
@@ -266,6 +332,24 @@ export function LightingPage() {
           </Space>
         </Space>
       </Card>
+
+      <div>
+        <Space wrap size={12} style={{ width: "100%", justifyContent: "space-between", marginBottom: 12 }}>
+          <Typography.Title level={5} style={{ margin: 0 }}>
+            {year} 年點燈數量儀表板
+          </Typography.Title>
+          <Typography.Text strong>燈數總量：{records.length} 盞</Typography.Text>
+        </Space>
+        <Row gutter={[12, 12]}>
+          {lampTypeCounts.map((lamp) => (
+            <Col key={lamp.value} xs={12} md={8} xl={4}>
+              <Card size="small" loading={loading} style={{ height: "100%" }}>
+                <Statistic title={lamp.label} value={lamp.count} suffix="盞" />
+              </Card>
+            </Col>
+          ))}
+        </Row>
+      </div>
 
       <Card styles={{ body: { padding: 0 } }}>
         <Space wrap size={12} style={{ width: "100%", padding: 16, borderBottom: "1px solid #f0f0f0" }}>
@@ -324,6 +408,58 @@ export function LightingPage() {
               options={lampTypes}
               onChange={(type: LampType) => addForm.setFieldValue("price", prices[type] ?? 0)}
             />
+          </Form.Item>
+          <Form.Item name="litDate" label="點燈日期" rules={[{ required: true, message: "請選擇點燈日期" }]}>
+            <DatePicker style={{ width: "100%" }} format="YYYY/MM/DD" />
+          </Form.Item>
+          <Form.Item name="price" label="價錢" rules={[{ required: true, message: "請輸入價錢" }]}>
+            <InputNumber min={0} precision={0} prefix="$" style={{ width: "100%" }} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        width={620}
+        title="編輯點燈"
+        open={Boolean(editingRecord)}
+        confirmLoading={saving}
+        okText="更新"
+        cancelText="取消"
+        onOk={updateRecord}
+        onCancel={() => {
+          setEditingRecord(null);
+          setError("");
+        }}
+        afterOpenChange={(open) => {
+          if (!open || !editingRecord) return;
+          editForm.setFieldsValue({
+            personName: editingRecord.personName ?? "",
+            birthDate: dayjs(editingRecord.birthDate),
+            address: editingRecord.address ?? "",
+            type: editingRecord.type,
+            litDate: dayjs(editingRecord.litDate),
+            price: Number(editingRecord.price)
+          });
+        }}
+        destroyOnHidden
+      >
+        {error && <Alert type="error" showIcon message={error} style={{ marginBottom: 16 }} />}
+        <Form form={editForm} layout="vertical" preserve={false}>
+          <Form.Item name="personName" label="姓名" rules={[{ required: true, whitespace: true, message: "請輸入點燈者姓名" }]}>
+            <Input maxLength={80} placeholder="請輸入姓名" />
+          </Form.Item>
+          <Form.Item name="birthDate" label="生日" rules={[{ required: true, message: "請選擇生日" }]}>
+            <DatePicker
+              style={{ width: "100%" }}
+              format="YYYY/MM/DD"
+              disabledDate={(date) => date.isAfter(dayjs(), "day")}
+            />
+          </Form.Item>
+          <Form.Item name="address" label="住址" rules={[{ required: true, whitespace: true, message: "請輸入點燈者住址" }]}>
+            <Input.TextArea maxLength={300} autoSize={{ minRows: 2, maxRows: 4 }} placeholder="請輸入住址" />
+          </Form.Item>
+          <Form.Item name="type" label="燈的種類" rules={[{ required: true, message: "請選擇燈的種類" }]}>
+            <Select options={lampTypes} />
           </Form.Item>
           <Form.Item name="litDate" label="點燈日期" rules={[{ required: true, message: "請選擇點燈日期" }]}>
             <DatePicker style={{ width: "100%" }} format="YYYY/MM/DD" />

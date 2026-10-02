@@ -104,3 +104,24 @@ export async function PATCH(request: NextRequest, context: Context) {
 
   return NextResponse.json({ error: "Unknown permission action." }, { status: 400 });
 }
+
+export async function DELETE(_request: NextRequest, context: Context) {
+  const auth = await requireApiPermission("permissions");
+  if (auth.response) return auth.response;
+  if (!auth.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { type, id } = await context.params;
+  if (type !== "users") {
+    return NextResponse.json({ error: "僅支援刪除帳號。" }, { status: 400 });
+  }
+
+  const target = await prisma.user.findUnique({ where: { id } });
+  if (!target) return NextResponse.json({ error: "找不到帳號。" }, { status: 404 });
+  if (target.isAdmin) return NextResponse.json({ error: "Admin 帳號不可刪除。" }, { status: 400 });
+  if (target.id === auth.user.id) {
+    return NextResponse.json({ error: "不可刪除目前登入的帳號。" }, { status: 400 });
+  }
+
+  await prisma.user.delete({ where: { id } });
+  return NextResponse.json({ ok: true });
+}

@@ -283,6 +283,7 @@ lineTotal｜明細金額`"]
 id｜PK
 itemId｜FK 品項
 type｜異動類型
+saleId｜可空 FK 營收單（系統建立）
 quantity｜數量
 reason｜原因
 movedAt｜異動時間`"]
@@ -377,6 +378,7 @@ active｜啟用`"]
   employeeTable -->|"Employee.id = Sale.servicePersonId"| saleTable
 
   itemTable -->|"Item.id = InventoryMovement.itemId"| inventoryTable
+  saleTable -->|"Sale.id = InventoryMovement.saleId（可空）"| inventoryTable
   employeeTable -->|"Employee.id = Shift.employeeId"| shiftTable
   employeeTable -->|"Employee.id = PettyCashEntry.employeeId"| pettyCashTable
   employeeTable -->|"Employee.id = FixedExpense.employeeId"| fixedExpenseTable
@@ -404,7 +406,7 @@ active｜啟用`"]
 | 營收登記 | SaleLine.lineTotal | 明細金額 | 數據總覽 / 月報表 / 年報表 | SaleLine.lineTotal | 品項與類別營收 | 彙總欄位；用於品項占比與類別分析。 |
 | 營收登記 | SaleLine.quantity | 銷售數量 | 月報表 | SaleLine.quantity | 品項銷量、服務分潤 | 彙總欄位；課程以外項目多以金額比例計算分潤。 |
 | 營收登記 | SaleLine.itemId | 需庫存品項 | 庫存紀錄 | InventoryMovement.itemId | 庫存異動品項 | 同步產生；銷售需庫存品項時新增扣庫存流水。 |
-| 營收登記 | Sale.id | 營收單 ID | 庫存紀錄 | InventoryMovement.reason | 銷售單來源 | 同步產生；reason 會寫入 `銷售單 {saleId}` 方便追蹤。 |
+| 營收登記 | Sale.id | 營收單 ID | 庫存紀錄 | InventoryMovement.saleId | 銷售單來源 | 可空外鍵；系統產生銷售扣庫存時寫入，修改與刪除依此關聯處理；刪除營收連帶刪除其庫存異動。reason 保留 `銷售單 {saleId}` 作為列表的「原因」說明。 |
 | 進銷項目 | Item.id | 品項 ID | 庫存紀錄 | InventoryMovement.itemId | 庫存異動品項 | 外鍵；所有庫存流水都掛在品項下。 |
 | 進銷項目 | Item.requiresInventory | 是否需要庫存 | 營收登記 / 庫存紀錄 | InventoryMovement.type、quantity | 是否銷售扣庫存 | 業務規則；只有需庫存品項銷售時自動扣庫存。 |
 | 進銷項目 | Item.cost | 品項成本 | 月報表 | Item.cost | 毛利成本來源 | 彙總欄位；報表以成本計算毛利參考。 |
@@ -437,6 +439,16 @@ active｜啟用`"]
 | 權限設定 | Role.id | 角色 ID | 權限設定 | User.roleId | 使用者角色 | 外鍵；使用者可套用角色。 |
 | 權限設定 | Role.pagePermissions | 角色頁面權限 | 全部受保護頁面/API | pagePermissions | 可操作頁面/API | 權限控制；角色提供預設權限。 |
 | 權限設定 | User.pagePermissions | 使用者頁面權限 | 全部受保護頁面/API | pagePermissions | 可操作頁面/API | 權限控制；使用者可覆寫頁面權限。 |
+
+### 服務人員從輸入到儲存的對應
+
+2026/10/01 確認：每筆營收紀錄對應一筆銷售明細，服務人員維持儲存在 `Sale.servicePersonId`，不移到 `SaleLine`。
+
+`POST /api/sales` 的 `lines[].servicePersonId` 是每列輸入資料的欄位，不是 `SaleLine` 資料表欄位。系統逐列建立獨立的 `Sale` 與其一筆 `SaleLine`，並將該列服務人員寫入各自的 `Sale.servicePersonId`。例如占卜選小美、儀式選阿明，會產生營收 A（小美）與營收 B（阿明）。
+
+`Item.servicePersonId` 僅提供選品項時的預設人員；營收儲存使用該列實際送出的人員，報表依 `Sale.servicePersonId` 歸屬服務分潤。`SaleLine` 儲存品項、數量、單價與金額，沒有服務人員欄位。
+
+目前修改 API 若收到多筆明細仍會取第一筆服務人員；限制為一筆明細的後端防呆列入第一點待修改項目，本次文件補充不代表該限制已實作。
 
 ## 六、核心資料流
 

@@ -343,6 +343,9 @@ export async function PATCH(request: NextRequest, context: Context) {
   if (!module) return apiError("Unknown module", 404);
 
   const body = await request.json();
+  if (slug === "inventory" && ("saleId" in body || "sale" in body)) {
+    return apiError("營收關聯由系統建立，不可手動指定或修改。", 400);
+  }
   let data: Record<string, unknown>;
   try {
     data = normalizeData(module, body);

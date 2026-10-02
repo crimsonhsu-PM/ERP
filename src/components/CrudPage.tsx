@@ -17,8 +17,12 @@ import {
   Input,
   InputNumber,
   Modal,
+  Col,
+  Popover,
+  Row,
   Select,
   Space,
+  Statistic,
   Table,
   Tag,
   Typography
@@ -299,6 +303,7 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
   const [relations, setRelations] = useState<Record<string, DataRecord[]>>({});
   const [form, setForm] = useState(initialForm);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
   const [error, setError] = useState("");
   const [tagModalOpen, setTagModalOpen] = useState(false);
   const [newTagName, setNewTagName] = useState("");
@@ -375,6 +380,46 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
     createRegistrationDetailRows()
   );
   const inventoryItems = (relations.items ?? []).filter((item) => item.requiresInventory !== false);
+  const inventoryDashboardRows = useMemo(() => {
+    if (config.slug !== "inventory") return [];
+
+    const totalsByItemId = new Map<string, { increase: number; decrease: number }>();
+    for (const record of records) {
+      const itemId = String(record.itemId ?? "");
+      if (!itemId) continue;
+      const quantity = Number(record.quantity ?? 0);
+      const current = totalsByItemId.get(itemId) ?? { increase: 0, decrease: 0 };
+      if (quantity >= 0) current.increase += quantity;
+      else current.decrease += Math.abs(quantity);
+      totalsByItemId.set(itemId, current);
+    }
+
+    return (relations.items ?? [])
+      .filter((item) => item.requiresInventory !== false)
+      .map((item) => {
+        const totals = totalsByItemId.get(String(item.id)) ?? { increase: 0, decrease: 0 };
+        return {
+          id: String(item.id),
+          name: String(item.name ?? item.id),
+          increase: totals.increase,
+          decrease: totals.decrease,
+          stockQuantity: totals.increase - totals.decrease
+        };
+      })
+      .sort((left, right) => left.name.localeCompare(right.name, "zh-Hant"));
+  }, [config.slug, records, relations.items]);
+  const inventoryDashboardTotals = useMemo(
+    () =>
+      inventoryDashboardRows.reduce(
+        (totals, item) => ({
+          increase: totals.increase + item.increase,
+          decrease: totals.decrease + item.decrease,
+          stockQuantity: totals.stockQuantity + item.stockQuantity
+        }),
+        { increase: 0, decrease: 0, stockQuantity: 0 }
+      ),
+    [inventoryDashboardRows]
+  );
   const fixedExpenseSystemSalaryRecords = useMemo<DataRecord[]>(() => {
     if (config.slug !== "fixed-expenses") return [];
     const employeesById = new Map((relations.employees ?? []).map((employee) => [employee.id, employee]));
@@ -595,6 +640,7 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
 
       setForm(initialForm);
       setEditingId(null);
+      setEditModalOpen(false);
       setRegistrationDetailRows(createRegistrationDetailRows());
       await load();
       return;
@@ -630,6 +676,7 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
     }
     setForm(initialForm);
     setEditingId(null);
+    setEditModalOpen(false);
     if (showEventItemBatch) {
       setBatchRows(createBatchRows(defaultBatchItemType));
       await loadItemsRelation();
@@ -656,6 +703,7 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
   }
 
   function edit(record: DataRecord) {
+    setError("");
     const next = { ...initialForm };
     for (const field of config.fields) {
       if (config.slug === "event-registrations" && field.name === "isPaid") {
@@ -692,6 +740,8 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
     setEditingId(record.id);
     if (showSopModalForm) {
       setSopModalOpen(true);
+    } else {
+      setEditModalOpen(true);
     }
     if (config.slug === "items") {
       setBatchRows([
@@ -930,6 +980,7 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
           return;
         }
         setEditingId(null);
+        setEditModalOpen(false);
         setBatchRows(createBatchRows());
         await load();
         return;
@@ -1314,9 +1365,236 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
         key={field.name}
         label={field.kind === "checkbox" ? undefined : field.label}
         required={field.required}
+        extra={
+          config.slug === "event-registrations" && field.name === "isPaid"
+            ? "請確認實際收到款項後再勾選；勾選後，此筆報名才會同步至營收登記。"
+            : undefined
+        }
       >
         {inputFor(field)}
       </Form.Item>
+    );
+  }
+
+  function closeEditModal() {
+    setEditModalOpen(false);
+    setEditingId(null);
+    setForm(initialForm);
+    setError("");
+    setRegistrationDetailRows(createRegistrationDetailRows());
+    setBatchRows(createBatchRows(defaultBatchItemType));
+  }
+
+  function editModalContent() {
+    if (showItemFilters) {
+      const row = batchRows[0];
+      if (!row) return null;
+      return (
+        <Form layout="vertical">
+          <Form.Item label="類型" required>
+            <Select
+              value={row.type}
+              disabled={row.lightingLinked}
+              onChange={(value) => updateBatchRowType(0, value)}
+              options={itemTypeOptions}
+            />
+          </Form.Item>
+          <Form.Item label="名稱" required>
+            <Input
+              value={row.name}
+              disabled={row.lightingLinked}
+              onChange={(event) => updateBatchRow(0, { name: event.target.value })}
+            />
+          </Form.Item>
+          <Form.Item label="售價" required>
+            <InputNumber
+              min={0}
+              style={{ width: "100%" }}
+              formatter={formatInputMoney}
+              parser={parseInputMoney}
+              value={row.price}
+              onChange={(value) => updateBatchRow(0, { price: value == null ? null : Number(value) })}
+            />
+          </Form.Item>
+          <Form.Item label="成本">
+            <InputNumber
+              min={0}
+              style={{ width: "100%" }}
+              formatter={formatInputMoney}
+              parser={parseInputMoney}
+              value={row.cost}
+              onChange={(value) => updateBatchRow(0, { cost: Number(value ?? 0) })}
+            />
+          </Form.Item>
+          <Form.Item>
+            <Checkbox
+              checked={row.requiresInventory}
+              disabled={nonInventoryItemTypes.has(row.type) || row.lightingLinked}
+              onChange={(event) => updateBatchRow(0, { requiresInventory: event.target.checked })}
+            >
+              需要庫存
+            </Checkbox>
+          </Form.Item>
+          <Form.Item label="備註">
+            <Input.TextArea
+              rows={4}
+              value={row.notes}
+              onChange={(event) => updateBatchRow(0, { notes: event.target.value })}
+            />
+          </Form.Item>
+          <Form.Item>
+            <Checkbox checked={row.active} onChange={(event) => updateBatchRow(0, { active: event.target.checked })}>
+              啟用
+            </Checkbox>
+          </Form.Item>
+          {error && <Alert type="error" message={error} showIcon />}
+        </Form>
+      );
+    }
+
+    if (showEventRegistrationSalesForm) {
+      const row = registrationDetailRows[0];
+      return (
+        <Form layout="vertical">
+          {renderFormField("registeredAt")}
+          {renderFormField("attendeeName")}
+          {renderFormField("paymentMethod")}
+          {renderFormField("remittanceRef")}
+          {renderFormField("isPaid")}
+          <Form.Item label="活動" required>
+            <Select
+              showSearch
+              value={row?.eventId || undefined}
+              placeholder="請選擇"
+              onChange={(value) => updateRegistrationDetailRow(0, { eventId: value })}
+              options={(relations.events ?? []).map((event) => ({
+                value: String(event.id),
+                label: String(event.title ?? event.name ?? event.id)
+              }))}
+            />
+          </Form.Item>
+          <Form.Item label="進銷項目" required>
+            <Select
+              showSearch
+              value={row?.itemId || undefined}
+              placeholder="請選擇"
+              disabled={!row?.eventId}
+              onChange={(value) => updateRegistrationDetailRow(0, { itemId: value })}
+              options={eventItemsFor(row?.eventId ?? "").map((item) => ({
+                value: String(item.id),
+                label: String(item.name ?? item.id)
+              }))}
+            />
+          </Form.Item>
+          <Form.Item label="金額" required>
+            <InputNumber
+              min={0}
+              style={{ width: "100%" }}
+              formatter={formatInputMoney}
+              parser={parseInputMoney}
+              value={row?.paidAmount ?? 0}
+              onChange={(value) => updateRegistrationDetailRow(0, { paidAmount: Number(value ?? 0) })}
+            />
+          </Form.Item>
+          {error && <Alert type="error" message={error} showIcon />}
+        </Form>
+      );
+    }
+
+    return (
+      <Form layout="vertical">
+        <div className="compact-form-grid">
+          {config.fields.filter((field) => !field.hiddenInForm).map((field) => (
+            <Form.Item
+              className={field.kind === "textarea" ? "compact-form-wide" : undefined}
+              key={field.name}
+              label={field.kind === "checkbox" ? undefined : field.label}
+              required={field.required}
+            >
+              {inputFor(field)}
+            </Form.Item>
+          ))}
+        </div>
+        {showEventItemBatch && (
+          <Card size="small" title="活動品項">
+            <Space direction="vertical" size={12} style={{ width: "100%" }}>
+              {batchRows.map((row, index) => (
+                <Card
+                  size="small"
+                  key={row.id || index}
+                  extra={
+                    <Button danger size="small" icon={<DeleteOutlined />} onClick={() => removeBatchRow(index)}>
+                      移除
+                    </Button>
+                  }
+                >
+                  <div className="compact-form-grid">
+                    <Form.Item label="類型" required>
+                      <Select value={row.type} onChange={(value) => updateBatchRowType(index, value)} options={itemTypeOptions} />
+                    </Form.Item>
+                    <Form.Item label="名稱" required>
+                      <Input value={row.name} onChange={(event) => updateBatchRow(index, { name: event.target.value })} />
+                    </Form.Item>
+                    <Form.Item label="售價" required>
+                      <InputNumber
+                        min={0}
+                        style={{ width: "100%" }}
+                        formatter={formatInputMoney}
+                        parser={parseInputMoney}
+                        value={row.price}
+                        onChange={(value) => updateBatchRow(index, { price: value == null ? null : Number(value) })}
+                      />
+                    </Form.Item>
+                    <Form.Item label="成本">
+                      <InputNumber
+                        min={0}
+                        style={{ width: "100%" }}
+                        formatter={formatInputMoney}
+                        parser={parseInputMoney}
+                        value={row.cost}
+                        onChange={(value) => updateBatchRow(index, { cost: Number(value ?? 0) })}
+                      />
+                    </Form.Item>
+                    <Form.Item>
+                      <Checkbox
+                        checked={row.requiresInventory}
+                        disabled={nonInventoryItemTypes.has(row.type)}
+                        onChange={(event) => updateBatchRow(index, { requiresInventory: event.target.checked })}
+                      >
+                        需要庫存
+                      </Checkbox>
+                    </Form.Item>
+                    {!nonInventoryItemTypes.has(row.type) && row.requiresInventory && (
+                      <Form.Item label="庫存數量">
+                        <InputNumber
+                          min={1}
+                          style={{ width: "100%" }}
+                          disabled={Boolean(row.id)}
+                          placeholder={row.id ? "既有庫存" : "庫存數量"}
+                          value={row.inventoryQuantity}
+                          onChange={(value) => updateBatchRow(index, { inventoryQuantity: Number(value ?? 0) })}
+                        />
+                      </Form.Item>
+                    )}
+                    <Form.Item>
+                      <Checkbox checked={row.active} onChange={(event) => updateBatchRow(index, { active: event.target.checked })}>
+                        啟用
+                      </Checkbox>
+                    </Form.Item>
+                  </div>
+                </Card>
+              ))}
+              <Button
+                icon={<PlusOutlined />}
+                onClick={() => setBatchRows([...batchRows, createBatchRow(defaultBatchItemType)])}
+              >
+                新增品項
+              </Button>
+            </Space>
+          </Card>
+        )}
+        {error && <Alert type="error" message={error} showIcon style={{ marginTop: 12 }} />}
+      </Form>
     );
   }
 
@@ -1329,7 +1607,7 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
         </div>
       )}
 
-      {showEventRegistrationSalesForm && (
+      {showEventRegistrationSalesForm && !editingId && (
         <Card className="compact-form-card wide-form-card" style={{ marginBottom: 16 }}>
           <Form layout="vertical" onFinish={() => void submit()}>
             <div className="sales-form-grid">
@@ -1491,7 +1769,7 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
         </>
       )}
 
-      {!showItemFilters && !showInventoryBatch && !showEventRegistrationSalesForm && !showSopModalForm && (
+      {!showItemFilters && !showInventoryBatch && !showEventRegistrationSalesForm && !showSopModalForm && !editingId && (
         <Card className={`compact-form-card${useWideFormCard ? " wide-form-card" : ""}`} style={{ marginBottom: 16 }}>
           <Form layout="vertical" onFinish={() => void submit()}>
             <div className="compact-form-grid">
@@ -1659,7 +1937,8 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
       )}
 
       {showInventoryBatch && (
-        <Card className="batch-form-card inventory-batch-card" style={{ marginBottom: 16 }}>
+        <>
+          <Card className="batch-form-card inventory-batch-card" style={{ marginBottom: 16 }}>
           <Typography.Title level={5} style={{ marginTop: 0 }}>
             批次新增
           </Typography.Title>
@@ -1736,10 +2015,106 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
               批次新增
             </Button>
           </Space>
-        </Card>
+          </Card>
+          <Typography.Title level={5} style={{ marginTop: 0, marginBottom: 12 }}>
+            庫存儀表板
+          </Typography.Title>
+          <Row gutter={[12, 12]} style={{ marginBottom: 16 }}>
+            <Col xs={12} lg={6}>
+              <Popover
+                title="品項目前庫存"
+                trigger="hover"
+                placement="bottomLeft"
+                content={
+                  <div style={{ width: 280, maxHeight: 320, overflowY: "auto" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", paddingBottom: 8 }}>
+                      <Typography.Text type="secondary">品項</Typography.Text>
+                      <Typography.Text type="secondary">目前庫存</Typography.Text>
+                    </div>
+                    <Space orientation="vertical" size={6} style={{ width: "100%" }}>
+                      {inventoryDashboardRows.map((item) => (
+                        <div key={item.id} style={{ display: "flex", justifyContent: "space-between", gap: 16 }}>
+                          <Typography.Text ellipsis style={{ maxWidth: 200 }}>{item.name}</Typography.Text>
+                          <Typography.Text strong type={item.stockQuantity < 0 ? "danger" : undefined}>
+                            {item.stockQuantity.toLocaleString()}
+                          </Typography.Text>
+                        </div>
+                      ))}
+                    </Space>
+                  </div>
+                }
+              >
+                <Card size="small" hoverable style={{ height: "100%", cursor: "help" }}>
+                  <Statistic title="追蹤品項" value={inventoryDashboardRows.length} suffix="項" />
+                </Card>
+              </Popover>
+            </Col>
+            <Col xs={12} lg={6}>
+              <Card size="small" style={{ height: "100%" }}>
+                <Statistic
+                  title="累計增加"
+                  value={inventoryDashboardTotals.increase}
+                  styles={{ content: { color: "#389e0d" } }}
+                />
+              </Card>
+            </Col>
+            <Col xs={12} lg={6}>
+              <Card size="small" style={{ height: "100%" }}>
+                <Statistic
+                  title="累計扣減"
+                  value={inventoryDashboardTotals.decrease}
+                  styles={{ content: { color: "#cf1322" } }}
+                />
+              </Card>
+            </Col>
+            <Col xs={12} lg={6}>
+              <Card size="small" style={{ height: "100%" }}>
+                <Statistic
+                  title="目前庫存總量"
+                  value={inventoryDashboardTotals.stockQuantity}
+                  styles={{ content: { color: inventoryDashboardTotals.stockQuantity < 0 ? "#cf1322" : "#1677ff" } }}
+                />
+              </Card>
+            </Col>
+          </Row>
+          <Card title="品項庫存明細" style={{ marginBottom: 16 }}>
+            <Table
+              rowKey="id"
+              size="small"
+              pagination={false}
+              dataSource={inventoryDashboardRows}
+              scroll={{ x: true, y: 320 }}
+              columns={[
+                { title: "品項", dataIndex: "name" },
+                {
+                  title: "累計增加",
+                  dataIndex: "increase",
+                  align: "right" as const,
+                  render: (value: number) => (value === 0 ? "0" : `+${value.toLocaleString()}`)
+                },
+                {
+                  title: "累計扣減",
+                  dataIndex: "decrease",
+                  align: "right" as const,
+                  render: (value: number) => (value === 0 ? "0" : `-${value.toLocaleString()}`)
+                },
+                {
+                  title: "目前庫存",
+                  dataIndex: "stockQuantity",
+                  align: "right" as const,
+                  render: (value: number) => (
+                    <Typography.Text strong type={value < 0 ? "danger" : undefined}>
+                      {value.toLocaleString()}
+                    </Typography.Text>
+                  )
+                }
+              ]}
+            />
+          </Card>
+        </>
       )}
 
-      {showItemFilters && (
+      {showItemFilters && !editingId && (
         <Card className="batch-form-card" style={{ marginBottom: 16 }}>
           <Typography.Title level={5} style={{ marginTop: 0 }}>
             批次新增
@@ -2058,6 +2433,19 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
           ]}
         />
       </Card>
+      <Modal
+        title={`編輯${config.title}`}
+        open={editModalOpen}
+        okText="更新"
+        cancelText="取消"
+        width={showEventItemBatch ? 960 : 720}
+        confirmLoading={batchSubmitting}
+        onOk={() => void (showItemFilters ? submitBatchItems() : submit())}
+        onCancel={closeEditModal}
+        destroyOnHidden
+      >
+        {editModalContent()}
+      </Modal>
       {showRegistrationFilters && (
         <Modal
           title="匯出活動報名"

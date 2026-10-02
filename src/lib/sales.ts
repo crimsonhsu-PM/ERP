@@ -115,6 +115,7 @@ export async function createSalesFromInput(body: CreateSalesInput) {
           data: {
             itemId: line.itemId,
             type: "SALE",
+            saleId: createdSale.id,
             quantity: -line.quantity,
             reason: `銷售單 ${createdSale.id}`,
             movedAt: createdSale.soldAt

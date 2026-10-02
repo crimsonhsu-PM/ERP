@@ -78,7 +78,7 @@ export const moduleConfigs: ModuleConfig[] = [
     title: "庫存紀錄",
     description: "記錄進貨、耗用、調整與銷售扣庫存。",
     api: "inventory",
-    columns: ["item", "type", "quantity", "stockQuantity", "movedAt"],
+    columns: ["item", "type", "quantity", "stockQuantity", "movedAt", "reason"],
     fields: [
       {
         name: "itemId",
