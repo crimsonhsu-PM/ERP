@@ -338,10 +338,10 @@ active｜啟用`"]
 id｜PK
 eventId｜FK 活動
 itemId｜FK 品項
-customerId｜FK 客戶
+customerId｜必填 FK 客戶
 saleId｜FK 營收單
-attendeeName｜姓名
-phone｜電話
+attendeeName｜姓名（選填）
+phone｜手機（必填）
 registeredAt｜報名日期
 status｜狀態
 paidAmount｜付款金額
@@ -349,6 +349,15 @@ paymentMethod｜付款方式
 remittanceRef｜匯款資訊
 notes｜備註`"]
   end
+
+  customerTable["`Customer
+欄位｜說明
+id｜PK 客戶內部編號
+phone｜必填、唯一手機
+name｜姓名（選填）
+email｜Email（選填）
+serviceLink｜客服連結
+notes｜備註`"]
 
   subgraph adminData["服務 / 系統"]
     direction TB
@@ -387,6 +396,7 @@ active｜啟用`"]
 
   eventTable -->|"Event.id = Item.eventId"| itemTable
   eventTable -->|"Event.id = Shift.eventId"| shiftTable
+  customerTable -->|"Customer.id = EventRegistration.customerId（必填）"| registrationTable
   eventTable -->|"Event.id = EventRegistration.eventId"| registrationTable
   itemTable -->|"Item.id = EventRegistration.itemId"| registrationTable
   saleTable -->|"Sale.id = EventRegistration.saleId"| registrationTable
@@ -431,6 +441,7 @@ active｜啟用`"]
 | 零用支出 | PettyCashEntry.amount、type | 金額與收入/支出類型 | 月報表 / 年報表 | PettyCashEntry.amount、type | 現金收入支出 | 彙總欄位；分別加總收入與支出。 |
 | 活動管理 | Event.id | 活動 ID | 進銷項目 | Item.eventId | 活動品項來源 | 外鍵/同步；活動頁建立的品項會寫入 Item 並連回 Event。 |
 | 活動管理 | Event.id | 活動 ID | 排班紀錄 | Shift.eventId | 活動月曆備註 | 外鍵/同步；活動日期會同步建立 Shift 備註。 |
+| 活動管理 | EventRegistration.customerId | 報名客戶 | 客戶資料 | Customer.id | 客戶內部編號 | 必填外鍵；依唯一手機取得或建立客戶，姓名選填。 |
 | 活動管理 | EventRegistration.eventId | 報名所屬活動 | 活動管理 | Event.id | 活動 ID | 外鍵；報名資料掛在活動下。 |
 | 活動管理 | EventRegistration.itemId | 報名項目 | 進銷項目 | Item.id | 活動品項 | 外鍵；報名付款選擇活動品項。 |
 | 活動管理 | EventRegistration.saleId | 同步營收單 | 營收登記 | Sale.id | 營收單 ID | 同步關聯；付款後建立 Sale 並回寫 saleId。 |
@@ -474,3 +485,7 @@ active｜啟用`"]
 | 零用支出 | PettyCashEntry | 分別加總收入與支出，並計算現金淨額。 |
 | 員工給付 | Employee + Shift + FixedExpense + Sale | 固定薪資、外部員工排班日薪、服務分潤合併計算。 |
 | 服務分潤 | Sale.servicePerson + SaleLine.item.type | 占卜/風水 50%、儀式 30%、實體商品 30%、香油 0。 |
+
+### 活動報名的客戶辨識（2026/10/04）
+
+報名表單第一欄是必填手機，第二欄是選填姓名。依正規化手機查詢既有客戶並帶入姓名；新號碼於儲存報名時建立客戶。同一交易內寫入客戶、報名及付款營收。詳細 API 與舊資料處理見 [活動報名客戶規則](event-registration-customers.md)。

@@ -464,23 +464,30 @@ SECTIONS = [
                     },
                     {
                         "method": "GET",
+                        "api": "/api/event-registrations/customer-lookup?phone=...",
+                        "content": "報名表單手機為第一欄且必填，輸入手機自動帶入既有姓名。",
+                        "fields": "phone 查詢參數；回傳 found、name。",
+                        "rules": "需活動管理權限；Customer.phone 必填且唯一，姓名選填；僅精確查詢手機，不公開完整客戶資料。"
+                    },
+                    {
+                        "method": "GET",
                         "api": "/api/event-registrations",
                         "content": "讀取活動報名資料。",
-                        "fields": "id、eventId、itemId、registeredAt、attendeeName、phone、paidAmount、paymentMethod、remittanceRef、status、saleId、event、item、customer。",
+                        "fields": "id、eventId、itemId、customerId、registeredAt、attendeeName、phone、paidAmount、paymentMethod、remittanceRef、status、saleId、event、item、customer。",
                         "rules": "需 event-registrations 模組權限；此頁內嵌於 /events。"
                     },
                     {
                         "method": "POST",
                         "api": "/api/event-registrations",
                         "content": "新增活動報名，付款時同步建立營收。",
-                        "fields": "eventId、itemId、registeredAt、attendeeName、phone、paymentMethod、remittanceRef、isPaid。",
-                        "rules": "itemId 必填且必須屬於該活動 active 品項；paidAmount 由品項 price 強制帶入；isPaid=true 時建立 Sale 與 SaleLine。"
+                        "fields": "phone（必填）、attendeeName（選填）、eventId、itemId、registeredAt、paymentMethod、remittanceRef、isPaid；customerId 依手機由系統寫入。",
+                        "rules": "手機正規化後辨識唯一客戶，新客戶與報名同交易建立；itemId 必填且必須屬於該活動 active 品項；paidAmount 由品項 price 強制帶入；isPaid=true 時建立 Sale 與 SaleLine。"
                     },
                     {
                         "method": "PATCH",
                         "api": "/api/event-registrations/:id",
                         "content": "更新活動報名或付款狀態。",
-                        "fields": "eventId、itemId、registeredAt、attendeeName、phone、paymentMethod、remittanceRef、isPaid。",
+                        "fields": "phone（必填）、attendeeName（選填）、eventId、itemId、registeredAt、paymentMethod、remittanceRef、isPaid；customerId 依手機由系統寫入。",
                         "rules": "isPaid=false 時會刪除已同步的 Sale；isPaid=true 時新增或更新 Sale。"
                     },
                     {

@@ -5,6 +5,7 @@ import {
   DeleteOutlined,
   DownloadOutlined,
   EditOutlined,
+  InfoCircleOutlined,
   PlusOutlined
 } from "@ant-design/icons";
 import {
@@ -25,10 +26,13 @@ import {
   Statistic,
   Table,
   Tag,
+  Tooltip,
   Typography
 } from "antd";
 import dayjs from "dayjs";
 import { itemTypeOptions, paymentMethods, type ModuleConfig, type ModuleField } from "@/lib/module-config";
+import { RegistrationCustomerFields } from "@/components/RegistrationCustomerFields";
+import { customerPhoneError, normalizeCustomerPhone } from "@/lib/customer-phone";
 
 type RecordValue = string | number | boolean | null | Record<string, unknown> | Record<string, unknown>[];
 type DataRecord = Record<string, RecordValue> & { id: string };
@@ -609,6 +613,10 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
   async function submit() {
     setError("");
     if (showEventRegistrationSalesForm) {
+      if (!normalizeCustomerPhone(form.phone)) {
+        setError(customerPhoneError);
+        return;
+      }
       const detailRows = registrationDetailRows.map((row) => ({
         ...row,
         paidAmount: Number(row.paidAmount ?? 0)
@@ -831,8 +839,6 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
         eventId: record.eventId,
         itemId: record.itemId,
         registeredAt: record.registeredAt,
-        attendeeName: record.attendeeName,
-        phone: record.phone,
         isPaid,
         paidAmount: record.paidAmount,
         paymentMethod: record.paymentMethod,
@@ -1365,15 +1371,36 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
         key={field.name}
         label={field.kind === "checkbox" ? undefined : field.label}
         required={field.required}
-        extra={
-          config.slug === "event-registrations" && field.name === "isPaid"
-            ? "請確認實際收到款項後再勾選；勾選後，此筆報名才會同步至營收登記。"
-            : undefined
-        }
       >
-        {inputFor(field)}
+        {config.slug === "event-registrations" && field.name === "isPaid" ? (
+          <Space size={4}>
+            {inputFor(field)}
+            <Tooltip
+              title="請確認實際收到款項後再勾選；勾選後，此筆報名才會同步至營收登記。"
+              trigger={["hover", "click"]}
+            >
+              <Button
+                type="text"
+                size="small"
+                htmlType="button"
+                aria-label="付款說明"
+                icon={<InfoCircleOutlined />}
+                style={{ color: "var(--brand)", width: 24, height: 24 }}
+              />
+            </Tooltip>
+          </Space>
+        ) : inputFor(field)}
       </Form.Item>
     );
+  }
+
+  function registrationCustomerFields() {
+    return <RegistrationCustomerFields
+      key={editingId ?? "new"}
+      phone={String(form.phone ?? "")}
+      name={String(form.attendeeName ?? "")}
+      onChange={(patch) => setForm((current) => ({ ...current, ...patch }))}
+    />;
   }
 
   function closeEditModal() {
@@ -1456,8 +1483,8 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
       const row = registrationDetailRows[0];
       return (
         <Form layout="vertical">
+          {registrationCustomerFields()}
           {renderFormField("registeredAt")}
-          {renderFormField("attendeeName")}
           {renderFormField("paymentMethod")}
           {renderFormField("remittanceRef")}
           {renderFormField("isPaid")}
@@ -1610,9 +1637,9 @@ export function CrudPage({ config, hideHeading = false }: { config: ModuleConfig
       {showEventRegistrationSalesForm && !editingId && (
         <Card className="compact-form-card wide-form-card" style={{ marginBottom: 16 }}>
           <Form layout="vertical" onFinish={() => void submit()}>
-            <div className="sales-form-grid">
+            <div className="sales-form-grid registration-form-grid">
+              {registrationCustomerFields()}
               {renderFormField("registeredAt")}
-              {renderFormField("attendeeName")}
               {renderFormField("paymentMethod")}
               {renderFormField("remittanceRef")}
               {renderFormField("isPaid")}

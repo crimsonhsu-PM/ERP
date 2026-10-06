@@ -9,17 +9,22 @@ import { LockOutlined, MailOutlined, UserOutlined } from "@ant-design/icons";
 function AuthFormInner({ mode }: { mode: "login" | "register" }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const showDemo = mode === "login" && process.env.NODE_ENV === "development";
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [values, setValues] = useState({ email: "", password: "", name: "" });
+  const [values, setValues] = useState({
+    email: showDemo ? "admin@example.com" : "",
+    password: showDemo ? "password123" : "",
+    name: ""
+  });
 
   useEffect(() => {
     setValues({
-      email: searchParams.get("email") ?? "",
-      password: searchParams.get("password") ?? "",
+      email: showDemo ? "admin@example.com" : searchParams.get("email") ?? "",
+      password: showDemo ? "password123" : searchParams.get("password") ?? "",
       name: searchParams.get("name") ?? ""
     });
-  }, [searchParams]);
+  }, [searchParams, showDemo]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -45,7 +50,7 @@ function AuthFormInner({ mode }: { mode: "login" | "register" }) {
   return (
     <div className="auth-page">
       <Card style={{ width: "min(460px, 100%)" }}>
-        <form onSubmit={submit}>
+        <form onSubmit={submit} autoComplete={showDemo ? "off" : "on"}>
           <Space direction="vertical" size={18} style={{ width: "100%" }}>
             <div>
               <Typography.Title level={2} style={{ margin: 0 }}>
@@ -55,6 +60,19 @@ function AuthFormInner({ mode }: { mode: "login" | "register" }) {
                 {mode === "login" ? "登入後即可進入後台。" : "第一個帳號會直接進入本機 MVP。"}
               </Typography.Text>
             </div>
+            {showDemo && (
+              <Alert
+                type="info"
+                showIcon
+                title="Demo 示範帳號"
+                description={
+                  <div>
+                    <div>帳號：admin@example.com</div>
+                    <div>密碼：password123</div>
+                  </div>
+                }
+              />
+            )}
             <Form layout="vertical" component={false}>
           {mode === "register" && (
             <Form.Item label="姓名" required>
@@ -74,6 +92,7 @@ function AuthFormInner({ mode }: { mode: "login" | "register" }) {
               id="email"
               name="email"
               type="email"
+              autoComplete={showDemo ? "off" : "username"}
               required
               value={values.email}
               onChange={(event) => setValues({ ...values, email: event.target.value })}
@@ -84,6 +103,7 @@ function AuthFormInner({ mode }: { mode: "login" | "register" }) {
               prefix={<LockOutlined />}
               id="password"
               name="password"
+              autoComplete={showDemo ? "off" : mode === "login" ? "current-password" : "new-password"}
               required
               minLength={6}
               value={values.password}

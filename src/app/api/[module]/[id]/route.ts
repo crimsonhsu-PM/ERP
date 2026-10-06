@@ -3,6 +3,8 @@ import { requireApiModulePermission } from "@/lib/api-auth";
 import { apiError, getApiModule, normalizeData } from "@/lib/api-modules";
 import { prisma } from "@/lib/prisma";
 import { lampDefinition } from "@/lib/lighting-items";
+import { resolveRegistrationCustomer, RegistrationCustomerError } from "@/lib/registration-customer";
+import { saveCustomerProfile } from "@/lib/customer-profile";
 
 type Context = {
   params: Promise<{ module: string; id: string }>;
@@ -237,7 +239,7 @@ type RegistrationSaleRecord = {
   eventId: string;
   itemId: string | null;
   saleId: string | null;
-  attendeeName: string;
+  attendeeName: string | null;
   phone: string | null;
   registeredAt?: unknown;
   paidAmount: unknown;
@@ -343,6 +345,7 @@ export async function PATCH(request: NextRequest, context: Context) {
   if (!module) return apiError("Unknown module", 404);
 
   const body = await request.json();
+  if (slug === "customers") return saveCustomerProfile(body, id);
   if (slug === "inventory" && ("saleId" in body || "sale" in body)) {
     return apiError("營收關聯由系統建立，不可手動指定或修改。", 400);
   }
@@ -423,8 +426,12 @@ export async function PATCH(request: NextRequest, context: Context) {
     }
   }
   if (slug === "event-registrations") {
-    const isPaid = booleanValue(body.isPaid);
+    const previous = await prisma.eventRegistration.findUnique({ where: { id } });
+    if (!previous) return apiError("找不到活動報名。", 404);
+    const isPaid = "isPaid" in body ? booleanValue(body.isPaid) : previous.status === "PAID";
     delete data.isPaid;
+    data.eventId = "eventId" in data ? data.eventId : previous.eventId;
+    data.itemId = "itemId" in data ? data.itemId : previous.itemId;
     data.status = isPaid ? "PAID" : "REGISTERED";
     if (!data.itemId) return apiError("請選擇進銷項目。", 400);
     const eventItem = await prisma.item.findFirst({
@@ -435,9 +442,10 @@ export async function PATCH(request: NextRequest, context: Context) {
     data.paidAmount = Number(eventItem.price);
     try {
       const record = await prisma.$transaction(async (tx) => {
+        const customerFields = await resolveRegistrationCustomer(tx, body, previous);
         const registration = await tx.eventRegistration.update({
           where: { id },
-          data: data as any,
+          data: { ...data, ...customerFields } as any,
           include: { event: { include: { items: { where: { active: true }, orderBy: { createdAt: "asc" } } } }, customer: true }
         });
         await syncRegistrationSale(tx as any, registration as any, isPaid);
@@ -445,6 +453,7 @@ export async function PATCH(request: NextRequest, context: Context) {
       });
       return NextResponse.json(record);
     } catch (error) {
+      if (error instanceof RegistrationCustomerError) return apiError(error.message, 400);
       console.error("Failed to update event registration", error);
       return apiError("活動報名儲存失敗，請確認付款金額。", 500);
     }

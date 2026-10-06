@@ -101,7 +101,7 @@ async function main() {
     create: {
       id: "seed-customer-lin",
       name: "林小姐",
-      phone: "0988-000-111",
+      phone: "0988000111",
       email: "lin@example.com",
       serviceLink: "https://example.com/customer/lin"
     }

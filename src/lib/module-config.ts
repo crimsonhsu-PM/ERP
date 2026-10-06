@@ -323,7 +323,7 @@ export const moduleConfigs: ModuleConfig[] = [
     title: "活動報名登記",
     description: "記錄報名、付款與匯款狀態。",
     api: "event-registrations",
-    columns: ["event", "item", "attendeeName", "registeredAt", "paidAmount", "status"],
+    columns: ["event", "item", "phone", "attendeeName", "registeredAt", "paidAmount", "status"],
     fields: [
       {
         name: "eventId",
@@ -345,10 +345,9 @@ export const moduleConfigs: ModuleConfig[] = [
       {
         name: "attendeeName",
         label: "姓名",
-        kind: "text",
-        required: true
+        kind: "text"
       },
-      { name: "phone", label: "電話", kind: "text" },
+      { name: "phone", label: "手機號碼", kind: "text", required: true },
       { name: "paidAmount", label: "金額", kind: "number", required: true },
       { name: "paymentMethod", label: "付款方式", kind: "select", options: paymentMethods },
       { name: "remittanceRef", label: "匯款資訊", kind: "text" },
@@ -367,8 +366,8 @@ export const moduleConfigs: ModuleConfig[] = [
     api: "customers",
     columns: ["name", "phone", "email", "serviceLink"],
     fields: [
-      { name: "name", label: "姓名", kind: "text", required: true },
-      { name: "phone", label: "電話", kind: "text" },
+      { name: "phone", label: "手機號碼", kind: "text", required: true },
+      { name: "name", label: "姓名", kind: "text" },
       { name: "email", label: "Email", kind: "text" },
       { name: "serviceLink", label: "客服連結", kind: "text" },
       { name: "notes", label: "備註", kind: "textarea", hiddenInTable: true }

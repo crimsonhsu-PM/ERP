@@ -300,10 +300,10 @@ model EventRegistration {
   id            String             @id @default(cuid())
   eventId       String
   itemId        String?
-  customerId    String?
+  customerId    String
   saleId        String?
-  attendeeName  String
-  phone         String?
+  attendeeName  String?
+  phone         String
   registeredAt  DateTime           @default(now())
   status        RegistrationStatus @default(REGISTERED)
   paidAmount    Decimal            @default(0)
@@ -312,15 +312,15 @@ model EventRegistration {
   notes         String?
   event         Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
   item          Item?              @relation(fields: [itemId], references: [id])
-  customer      Customer?          @relation(fields: [customerId], references: [id])
+  customer      Customer           @relation(fields: [customerId], references: [id], onDelete: Restrict)
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
 }
 
 model Customer {
   id             String                  @id @default(cuid())
-  name           String
-  phone          String?
+  name           String?
+  phone          String                  @unique
   email          String?
   serviceLink    String?
   notes          String?

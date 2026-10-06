@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireApiModulePermission } from "@/lib/api-auth";
 import { apiError, getApiModule, normalizeData } from "@/lib/api-modules";
 import { prisma } from "@/lib/prisma";
+import { resolveRegistrationCustomer, RegistrationCustomerError } from "@/lib/registration-customer";
+import { saveCustomerProfile } from "@/lib/customer-profile";
 
 type Context = {
   params: Promise<{ module: string }>;
@@ -265,7 +267,7 @@ type RegistrationSaleRecord = {
   eventId: string;
   itemId: string | null;
   saleId: string | null;
-  attendeeName: string;
+  attendeeName: string | null;
   phone: string | null;
   registeredAt?: unknown;
   paidAmount: unknown;
@@ -379,6 +381,7 @@ export async function POST(request: NextRequest, context: Context) {
   if (!module) return apiError("Unknown module", 404);
 
   const body = await request.json();
+  if (slug === "customers") return saveCustomerProfile(body);
   if (slug === "inventory" && ("saleId" in body || "sale" in body)) {
     return apiError("營收關聯由系統建立，不可手動指定或修改。", 400);
   }
@@ -444,8 +447,9 @@ export async function POST(request: NextRequest, context: Context) {
     data.paidAmount = Number(eventItem.price);
     try {
       const record = await prisma.$transaction(async (tx) => {
+        const customerFields = await resolveRegistrationCustomer(tx, body);
         const registration = await tx.eventRegistration.create({
-          data: data as any,
+          data: { ...data, ...customerFields } as any,
           include: { event: { include: { items: { where: { active: true }, orderBy: { createdAt: "asc" } } } }, customer: true }
         });
         await syncRegistrationSale(tx as any, registration as any, isPaid);
@@ -453,6 +457,7 @@ export async function POST(request: NextRequest, context: Context) {
       });
       return NextResponse.json(record, { status: 201 });
     } catch (error) {
+      if (error instanceof RegistrationCustomerError) return apiError(error.message, 400);
       console.error("Failed to create event registration", error);
       return apiError("活動報名儲存失敗，請確認付款金額。", 500);
     }
