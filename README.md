@@ -1,6 +1,6 @@
 # ERP/POS MVP
 
-服務業為主、商品銷售為輔的 Next.js + Prisma ERP/POS MVP。
+服務業為主、商品銷售為輔的 Next.js + Prisma ERP/POS MVP。公開作品展示版另見 https://unv-plan-erp-demo.lazyer1016.chatgpt.site/；其來源與此 repo 分開維護。
 
 ## 本機啟動
 
@@ -41,15 +41,7 @@ pnpm dev
 
 ## LINE Chatbot 營收登記
 
-新增下列環境變數到 `.env`：
-
-```bash
-LINE_CHANNEL_SECRET="LINE Developers Console 的 Channel secret"
-LINE_CHANNEL_ACCESS_TOKEN="Messaging API channel access token"
-LINE_ALLOWED_USER_IDS="允許新增營收的 LINE userId，多個用逗號分隔"
-OPENAI_API_KEY="OpenAI API key"
-OPENAI_MODEL="gpt-5-mini"
-```
+LINE 與 OpenAI 相關設定及用途列在 `.env.example`；需要時複製到未追蹤的 `.env` 填入自己的值。不要將正式憑證提交到 GitHub。
 
 本機 MVP 可用 ngrok 或 Cloudflare Tunnel 將 `http://localhost:3000` 暴露成 HTTPS，並在 LINE Developers Console 將 webhook URL 設為：
 
