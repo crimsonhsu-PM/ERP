@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>UNV.PLAN ERP 離線版</title>
+  <title>門市管理 ERP 離線版</title>
   <style>
     :root {
       --bg: #f5f7fa;
@@ -14,7 +14,7 @@
       --brand: #126a7a;
       --brand-dark: #0a4f5c;
       --brand-soft: #e6f4ff;
-      --sider-line: #c8e8ff;
+      --sider-line: #345364;
       --danger: #b3261e;
       --ok: #13795b;
     }
@@ -24,16 +24,16 @@
     button, input, select, textarea { font: inherit; }
     button { cursor: pointer; }
     .app { min-height: 100vh; display: grid; grid-template-columns: 260px 1fr; }
-    aside { background: #eaf6ff; border-right: 1px solid var(--sider-line); position: sticky; top: 0; height: 100vh; overflow: auto; }
-    .brand { color: #075c78; font-size: 18px; font-weight: 700; padding: 18px 20px; white-space: nowrap; background: #dff2ff; border-bottom: 1px solid var(--sider-line); }
+    aside { background: #172e3c; border-right: 1px solid var(--sider-line); position: sticky; top: 0; height: 100vh; overflow: auto; }
+    .brand { color: #e1f0f3; font-size: 18px; font-weight: 700; padding: 18px 20px; white-space: nowrap; background: #172e3c; border-bottom: 1px solid var(--sider-line); }
     .nav { padding: 8px 4px; }
     .nav-group { margin: 4px 0; }
-    .nav-title { display: flex; align-items: center; gap: 10px; height: 40px; margin: 0 4px; padding: 0 24px; border-radius: 8px; color: #25566f; font-size: 14px; font-weight: 400; line-height: 40px; }
+    .nav-title { display: flex; align-items: center; gap: 10px; height: 40px; margin: 0 4px; padding: 0 24px; border-radius: 8px; color: #e1f0f3; font-size: 14px; font-weight: 400; line-height: 40px; }
     .nav-title svg, .nav button svg { width: 14px; height: 14px; flex: 0 0 auto; }
-    .nav-title::after { content: "⌄"; margin-left: auto; color: rgba(0, 0, 0, 0.45); font-size: 12px; }
-    .nav button { display: flex; align-items: center; gap: 10px; width: calc(100% - 8px); min-height: 40px; margin: 4px; text-align: left; border: 0; border-radius: 8px; background: transparent; padding: 0 16px 0 48px; cursor: pointer; color: #25566f; line-height: 40px; transition: background .15s, color .15s; }
-    .nav button:hover { background: #d8efff; color: #0b6382; }
-    .nav button.active { background: #c8e8ff; color: #075c78; font-weight: 700; }
+    .nav-title::after { content: "⌄"; margin-left: auto; color: #84a6b1; font-size: 12px; }
+    .nav button { display: flex; align-items: center; gap: 10px; width: calc(100% - 8px); min-height: 40px; margin: 4px; text-align: left; border: 0; border-radius: 8px; background: transparent; padding: 0 16px 0 48px; cursor: pointer; color: #a4bdc5; line-height: 40px; transition: background .15s, color .15s; }
+    .nav button:hover { background: #224354; color: #e9faff; }
+    .nav button.active { background: #294d60; color: #e9faff; font-weight: 700; }
     main { padding: 24px; min-width: 0; }
     .topbar { display: flex; gap: 12px; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
     h1 { margin: 0; font-size: 30px; line-height: 1.25; font-weight: 600; }
@@ -208,7 +208,7 @@
 <body>
   <div class="app">
     <aside>
-      <div class="brand">UNV.PLAN ERP</div>
+      <div class="brand">門市管理 ERP</div>
       <nav class="nav" id="nav"></nav>
     </aside>
     <main>

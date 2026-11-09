@@ -4,7 +4,7 @@ import { AppThemeProvider } from "@/components/AppThemeProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "UNV.PLAN ERP",
+  title: "門市管理 ERP",
   description: "Service-first ERP and POS MVP"
 };
 

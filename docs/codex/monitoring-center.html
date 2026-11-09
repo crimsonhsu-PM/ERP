@@ -1,0 +1,1550 @@
+<title>監控分析中心</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: mirrors the ERP's Ant Design shell — light-blue Sider menu on the left, white header, layout-grey content.
+   Content = 3D island stage + detail panel (stacks on phones). Tokens copied from the ERP's AppThemeProvider. */
+:root{
+  --sky:#f5f7fa; --sky-2:#eaf6ff; --panel:#ffffff; --card:#f5f7fa; --line:#edf0f2; --line-2:#d9d9d9;
+  --ink:#1f1f1f; --muted:#8c8c8c; --accent:#126a7a; --accent-hover:#2b8a99; --accent-soft:#e6f2f3;
+  --ok:#52c41a; --warn:#faad14; --alarm:#ff4d4f; --idle:#bfbfbf;
+  --sider:#eaf6ff; --menu-ink:#25566f; --menu-hover:#d8efff; --menu-sel:#c8e8ff; --menu-sel-ink:#075c78;
+  --shadow:0 6px 16px rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12),0 9px 28px 8px rgba(0,0,0,.05);
+  --f-body:Arial,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif; --f-display:var(--f-body); --f-num:var(--f-body);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --sky:#101820; --sky-2:#132634; --panel:#18242e; --card:#1f2d38; --line:#31414e; --line-2:#3e5160;
+  --ink:#dfe6ea; --muted:#8a9ba8; --accent:#2b91ad; --accent-hover:#3fa6c2; --accent-soft:#16313c;
+  --ok:#49aa19; --warn:#d89614; --alarm:#dc4446; --idle:#5c6b77;
+  --sider:#111d27; --menu-ink:#a9bfca; --menu-hover:#1a3443; --menu-sel:#1d5269; --menu-sel-ink:#f3fbff;
+  --shadow:0 6px 16px rgba(0,0,0,.4); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --sky:#101820; --sky-2:#132634; --panel:#18242e; --card:#1f2d38; --line:#31414e; --line-2:#3e5160;
+  --ink:#dfe6ea; --muted:#8a9ba8; --accent:#2b91ad; --accent-hover:#3fa6c2; --accent-soft:#16313c;
+  --ok:#49aa19; --warn:#d89614; --alarm:#dc4446; --idle:#5c6b77;
+  --sider:#111d27; --menu-ink:#a9bfca; --menu-hover:#1a3443; --menu-sel:#1d5269; --menu-sel-ink:#f3fbff;
+  --shadow:0 6px 16px rgba(0,0,0,.4); color-scheme:dark}
+html,body{height:100%}
+body{background:var(--sky);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.5715;overflow:hidden}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--panel)}
+button,select,input,textarea{font-family:var(--f-body)}
+.app{height:100%;display:grid;grid-template-columns:220px minmax(0,1fr)}
+/* Sider */
+.sider{background:var(--sider);overflow-y:auto;min-height:0;padding-block:0 16px;padding-left:max(0px,env(safe-area-inset-left,0px))}
+.sider .brandrow{height:56px;display:flex;align-items:center;gap:10px;padding-inline:20px;font-weight:700;color:var(--menu-sel-ink)}
+.logo{width:28px;height:28px;border-radius:6px;background:var(--accent);display:grid;place-items:center;color:#fff;font-weight:700;font-size:14px;flex:none}
+.menu{list-style:none;margin:0;padding:0 8px;display:grid;gap:2px}
+.menu .grp{font-size:12px;color:var(--muted);padding:12px 16px 4px}
+.menu button{appearance:none;width:100%;text-align:left;border:0;background:transparent;color:var(--menu-ink);font-size:14px;height:40px;padding-inline:16px 12px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:8px}
+.menu button:hover:not([disabled]){background:var(--menu-hover)}
+.menu button[aria-current="true"]{background:var(--menu-sel);color:var(--menu-sel-ink);font-weight:600}
+.menu button[disabled]{opacity:.45;cursor:default}
+.menu button .mk{margin-left:auto;font-size:11px;color:var(--muted)}
+.menu button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.main{display:grid;grid-template-rows:auto minmax(0,1fr);min-width:0;min-height:0}
+/* Header */
+header{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--panel);border-bottom:1px solid var(--line);min-height:56px;box-sizing:border-box;
+  padding-block:8px;padding-left:24px;padding-right:max(16px,env(safe-area-inset-right,0px))}
+.brand{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;min-width:0;margin-right:auto}
+.brand h1{margin:0;font-size:18px;font-weight:600;color:var(--ink)}
+.brand .sub{color:var(--muted);font-size:13px}
+.chip{font-size:12px;line-height:20px;padding:0 7px;border-radius:4px;border:1px solid color-mix(in srgb,var(--accent) 35%,var(--panel));background:var(--accent-soft);color:var(--accent)}
+.clock{color:var(--muted);font-variant-numeric:tabular-nums;font-size:13px}
+.content{display:grid;grid-template-columns:minmax(0,1fr) 360px;min-height:0;min-width:0}
+/* Stage */
+.stage{position:relative;min-width:0;min-height:0;overflow:hidden;background:linear-gradient(180deg,var(--sky) 0%,var(--sky-2) 100%)}
+.stage canvas{display:block;width:100%;height:100%;cursor:grab}
+.stage canvas.hot{cursor:pointer}
+.labels{position:absolute;inset:0;pointer-events:none}
+.tag{position:absolute;transform:translate(-50%,-100%);pointer-events:auto;cursor:pointer;background:var(--panel);
+  border:1px solid var(--line);border-radius:8px;padding:5px 10px 6px;white-space:nowrap;display:grid;gap:1px;box-shadow:var(--shadow);transition:border-color .2s}
+.tag.sel{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 20%,transparent),var(--shadow)}
+.tag .n{font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px}
+.tag .v{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.tag::after{content:"";position:absolute;left:50%;bottom:-6px;transform:translateX(-50%) rotate(45deg);width:10px;height:10px;background:var(--panel);border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+.tag.s-alarm{border-color:var(--alarm);animation:pulse 1.4s infinite}
+.tag.s-stale{opacity:.7;border-style:dashed}
+@keyframes pulse{50%{box-shadow:0 0 0 4px color-mix(in srgb,var(--alarm) 25%,transparent),var(--shadow)}}
+.overview{position:absolute;right:136px;bottom:12px;z-index:3}
+.fab{position:absolute;right:max(12px,env(safe-area-inset-right,0px));bottom:12px;z-index:3;height:40px;padding:0 18px;font-size:15px;font-weight:600;border-radius:20px;box-shadow:0 6px 16px color-mix(in srgb,var(--accent) 35%,transparent)}
+.fab span{font-size:18px;line-height:1}
+.goal{display:grid;gap:6px}
+.goal .gl{display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
+.goal .gl b{color:var(--ink);font-variant-numeric:tabular-nums}
+.gbar{height:8px;border-radius:4px;background:var(--card);border:1px solid var(--line);overflow:hidden}
+.gbar i{display:block;height:100%;background:linear-gradient(90deg,#f5c542,#f2a91c);transition:width .5s}
+.hint{position:absolute;left:12px;bottom:10px;font-size:12px;color:var(--muted);background:color-mix(in srgb,var(--panel) 80%,transparent);padding:2px 8px;border-radius:4px;pointer-events:none}
+.banner{position:absolute;left:50%;top:12px;transform:translateX(-50%);max-width:calc(100% - 32px);background:color-mix(in srgb,var(--alarm) 8%,var(--panel));border:1px solid color-mix(in srgb,var(--alarm) 35%,var(--panel));color:var(--ink);border-radius:8px;padding:8px 14px;font-size:14px;display:flex;gap:8px;align-items:center;z-index:2;box-shadow:var(--shadow)}
+/* status icon: AntD filled-circle icons */
+.dot{width:14px;height:14px;border-radius:50%;flex:none;background:var(--s,var(--idle));display:inline-grid;place-items:center;color:#fff;font-size:9px;font-weight:700;line-height:1}
+.s-run{--s:var(--ok)} .s-warn{--s:var(--warn)} .s-alarm{--s:var(--alarm)} .s-hub{--s:var(--accent)} .s-stale,.s-idle{--s:var(--idle)}
+.dot.s-run::after{content:"✓"} .dot.s-warn::after{content:"!"} .dot.s-alarm::after{content:"✕";font-size:8px} .dot.s-stale::after{content:"–"} .dot.s-hub::after{content:"Σ";font-size:8px}
+.rules .dot:not([class*="s-"]){width:8px;height:8px;margin-top:6px}
+/* Panel = AntD Card stack */
+.panel{background:var(--panel);border-left:1px solid var(--line);overflow-y:auto;min-height:0;display:flex;flex-direction:column;
+  padding-block:16px;padding-left:16px;padding-right:max(16px,env(safe-area-inset-right,0px))}
+.panel section{display:grid;gap:12px;padding-block:16px;border-bottom:1px solid var(--line)}
+.panel section:first-child{padding-top:0}
+.panel section:last-child{border-bottom:0}
+.eyebrow{font-size:16px;font-weight:600;color:var(--ink)}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.kpi{border:1px solid var(--line);border-radius:8px;padding:12px;display:grid;gap:2px}
+.kpi span{font-size:14px;color:var(--muted)}
+.kpi b{font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}
+.kpi small{font-size:12px;color:var(--muted)}
+.up{color:var(--ok)} .down{color:var(--alarm)}
+.detail-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.detail-h h2{margin:0;font-size:18px;font-weight:600}
+.pill,.sev{font-size:12px;line-height:20px;padding:0 7px;border-radius:4px;border:1px solid color-mix(in srgb,var(--s) 45%,var(--panel));background:color-mix(in srgb,var(--s) 10%,var(--panel));color:color-mix(in srgb,var(--s) 80%,var(--ink));white-space:nowrap}
+.detail-h .pill{margin-left:auto}
+.tables{display:flex;flex-wrap:wrap;gap:6px}
+.tables code,.hint2 code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;background:var(--card);border:1px solid var(--line);border-radius:4px;padding:0 6px;color:var(--ink)}
+.rows{display:grid;grid-template-columns:auto 1fr;gap:8px 12px;margin:0;font-size:14px}
+.rows dt{color:var(--muted)}
+.rows dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+.minibars{display:grid;gap:6px}
+.minibars div{display:grid;grid-template-columns:52px 1fr 36px;gap:8px;align-items:center;font-size:13px}
+.minibars i{display:block;height:8px;border-radius:4px;background:var(--c);min-width:4px;transition:width .5s}
+.minibars em{font-style:normal;text-align:right;color:var(--muted)}
+.rules{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:13px}
+.rules li{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:start;color:var(--muted)}
+.rules li.on{color:var(--ink);font-weight:600}
+.rules li .dot{margin-top:3px}
+/* AntD buttons */
+.btn,.btn2,.report,.ghost{appearance:none;font-size:14px;height:32px;padding:0 15px;border-radius:6px;cursor:pointer;border:1px solid transparent;display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:all .2s;white-space:nowrap}
+.btn,.report{background:var(--accent);color:#fff;box-shadow:0 2px 0 color-mix(in srgb,var(--accent) 12%,transparent)}
+.btn:hover,.report:hover{background:var(--accent-hover)}
+.btn2,.ghost{background:var(--panel);color:var(--ink);border-color:var(--line-2);box-shadow:0 2px 0 rgba(0,0,0,.02)}
+.btn2:hover,.ghost:hover{color:var(--accent);border-color:var(--accent)}
+.ghost[aria-pressed="true"]{color:var(--alarm);border-color:var(--alarm)}
+.btn[disabled]{background:var(--card);color:var(--muted);border-color:var(--line-2);box-shadow:none;cursor:not-allowed}
+.btn:focus-visible,.btn2:focus-visible,.report:focus-visible,.ghost:focus-visible,.tag:focus-visible,.sys:focus-visible,.dcard:focus-visible,.seg button:focus-visible,.rolesel:focus-visible,.tabs button:focus-visible{outline:2px solid color-mix(in srgb,var(--accent) 55%,transparent);outline-offset:1px}
+.sys{display:inline-flex;align-items:center;gap:6px;font-size:12px;line-height:22px;padding:0 8px;border-radius:4px;cursor:pointer;color:color-mix(in srgb,var(--s) 80%,var(--ink));background:color-mix(in srgb,var(--s) 10%,var(--panel));border:1px solid color-mix(in srgb,var(--s) 45%,var(--panel))}
+.sys .dot{width:12px;height:12px;font-size:8px}
+.seg{display:inline-flex;background:color-mix(in srgb,var(--ink) 6%,var(--panel));border-radius:6px;padding:2px;gap:2px}
+.seg button{appearance:none;border:0;background:transparent;font-size:14px;color:var(--muted);height:28px;padding:0 11px;border-radius:4px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--panel);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.06),0 1px 4px -1px rgba(0,0,0,.04)}
+.rolesel,.field select,.field input,.field textarea,.sline select,.sline input{font-size:14px;color:var(--ink);background:var(--panel);border:1px solid var(--line-2);border-radius:6px;box-sizing:border-box;min-width:0;transition:border-color .2s,box-shadow .2s}
+.rolesel{height:32px;padding:0 8px}
+.rolesel:hover,.field select:hover,.field input:hover,.field textarea:hover{border-color:var(--accent)}
+.field select:focus,.field input:focus,.field textarea:focus,.sline select:focus,.sline input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 15%,transparent)}
+.empty{color:var(--muted);font-size:14px}
+.log{list-style:none;margin:0;padding:0;display:grid;gap:8px;font-size:13px}
+.log li{display:grid;grid-template-columns:auto auto 1fr;gap:8px;align-items:center}
+.log time{color:var(--muted);font-variant-numeric:tabular-nums}
+.log .msg{min-width:0;overflow-wrap:anywhere}
+.log .dot{width:12px;height:12px;font-size:8px}
+.note{font-size:13px;color:var(--muted);background:var(--card);border:1px solid var(--line);border-radius:6px;padding:8px 12px}
+.plain{list-style:none;margin:0;padding:0;display:grid;gap:8px;font-size:14px}
+.plain li{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:start;border:1px solid var(--line);border-radius:6px;padding:8px 12px}
+.plain li .dot{margin-top:3px}
+.tickets{list-style:none;margin:0;padding:0;display:grid;gap:8px;font-size:13px}
+.tickets li{display:grid;grid-template-columns:1fr auto;gap:2px 8px;border:1px solid var(--line);border-radius:6px;padding:8px 12px}
+.tickets .tid{color:var(--muted);font-size:12px}
+.tickets .ttl{min-width:0;overflow-wrap:anywhere}
+.tst{grid-row:1/3;grid-column:2;align-self:center;font-size:12px;line-height:20px;padding:0 7px;border-radius:4px;cursor:pointer;border:1px solid color-mix(in srgb,var(--s) 45%,var(--panel));color:color-mix(in srgb,var(--s) 80%,var(--ink));background:color-mix(in srgb,var(--s) 10%,var(--panel))}
+/* AntD Modal */
+.overlay{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.45);display:grid;place-items:center;
+  padding-block:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.dialog{background:var(--panel);border-radius:8px;width:min(560px,100%);max-height:100%;overflow-y:auto;padding:20px 24px;display:grid;gap:16px;box-shadow:var(--shadow)}
+.dialog h2{margin:0;font-size:16px;font-weight:600;display:flex;align-items:center;gap:10px}
+.dialog h2 .x{margin-left:auto;appearance:none;border:0;background:transparent;border-radius:4px;width:28px;height:28px;font-size:16px;cursor:pointer;color:var(--muted)}
+.dialog h2 .x:hover{background:var(--card);color:var(--ink)}
+.field{display:grid;gap:6px;font-size:14px}
+.field label,.field legend,.flabel{color:var(--ink);font-size:14px;padding:0}
+.field select,.field input{height:32px;padding:0 11px;width:100%}
+.field textarea{padding:5px 11px;width:100%;min-height:72px;resize:vertical}
+fieldset.field{border:0;margin:0;padding:0}
+.radios{display:flex;flex-wrap:wrap;gap:0}
+.radios label{position:relative;display:inline-flex;align-items:center;gap:6px;color:var(--ink);font-size:14px;height:32px;padding:0 12px;border:1px solid var(--line-2);margin-left:-1px;background:var(--panel);cursor:pointer;margin-bottom:4px}
+.radios label:first-child{border-radius:6px 0 0 6px;margin-left:0}
+.radios label:last-child{border-radius:0 6px 6px 0}
+.radios input{position:absolute;opacity:0;pointer-events:none}
+.radios label:has(input:checked){color:var(--accent);border-color:var(--accent);position:relative;z-index:1}
+.radios label:has(input:focus-visible){outline:2px solid color-mix(in srgb,var(--accent) 55%,transparent)}
+.snap{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:10px;white-space:pre-wrap;overflow-wrap:anywhere;margin:0;max-height:160px;overflow-y:auto;color:var(--ink)}
+.actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+.ai{border:1px solid color-mix(in srgb,var(--accent) 30%,var(--panel));border-radius:8px;padding:12px 16px;display:grid;gap:6px;font-size:14px;background:var(--accent-soft)}
+.ai h3{margin:0;font-size:14px;font-weight:600;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ai p{margin:0}
+.done{display:grid;gap:12px}
+/* Dashboard mode */
+.dash{position:absolute;inset:0;overflow-y:auto;background:var(--sky);padding-block:16px;padding-inline:16px}
+.dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px}
+.dcard{appearance:none;text-align:left;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px;display:grid;gap:8px;cursor:pointer;align-content:start;transition:box-shadow .2s,border-color .2s}
+.dcard:hover{box-shadow:var(--shadow)}
+.dcard.sel{border-color:var(--accent)}
+.dcard .dh{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:600}
+.dcard .dh .pill{margin-left:auto;font-weight:400}
+.dcard .dm{font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}
+.dcard .dr{font-size:13px;color:var(--muted);min-height:1.4em}
+.dcard.s-alarm{border-color:color-mix(in srgb,var(--alarm) 50%,var(--panel))} .dcard.s-alarm .dr{color:var(--alarm)} .dcard.s-warn .dr{color:color-mix(in srgb,var(--warn) 80%,var(--ink))}
+/* AntD Tabs (line) */
+.tabs{display:flex;gap:24px;border-bottom:1px solid var(--line)}
+.tabs button{appearance:none;border:0;background:transparent;font-size:14px;color:var(--ink);padding:10px 0;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button:hover{color:var(--accent-hover)}
+.tabs button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent);font-weight:500}
+/* forms */
+.fform{display:grid;gap:12px}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.frow>*{min-width:0}
+.check{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer}
+.check input{accent-color:var(--accent);width:16px;height:16px;margin:0}
+.total{display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid var(--line);padding-top:10px}
+.total span{color:var(--muted);font-size:14px}
+.total b{font-weight:600;font-size:22px;font-variant-numeric:tabular-nums}
+.msg{font-size:14px;border-radius:6px;padding:8px 12px;border:1px solid}
+.msg.ok{color:color-mix(in srgb,var(--ok) 80%,var(--ink));background:color-mix(in srgb,var(--ok) 8%,var(--panel));border-color:color-mix(in srgb,var(--ok) 40%,var(--panel))}
+.msg.err{color:color-mix(in srgb,var(--alarm) 85%,var(--ink));background:color-mix(in srgb,var(--alarm) 8%,var(--panel));border-color:color-mix(in srgb,var(--alarm) 40%,var(--panel))}
+.hint2{margin:0;font-size:12px;color:var(--muted)}
+.lhead,.sline{display:grid;grid-template-columns:58px minmax(0,1fr) 64px 28px;gap:6px;align-items:center}
+.lhead{font-size:12px;color:var(--muted);padding-inline:8px}
+.slines{display:grid;gap:8px}
+.sline{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:8px}
+.sline select{grid-column:1/-1;height:32px;padding:0 8px;width:100%}
+.sline input{height:32px;padding:0 8px;width:100%}
+.lSub{text-align:right;font-variant-numeric:tabular-nums;font-size:13px}
+.lDel{appearance:none;border:0;background:transparent;color:var(--muted);border-radius:4px;width:28px;height:28px;cursor:pointer;font-size:14px}
+.lDel:hover{color:var(--alarm);background:color-mix(in srgb,var(--alarm) 8%,var(--panel))}
+.addline{appearance:none;font-size:14px;height:32px;border:1px dashed var(--line-2);background:var(--panel);color:var(--ink);border-radius:6px;cursor:pointer}
+.addline:hover{border-color:var(--accent);color:var(--accent)}
+/* analysis */
+.insight{font-size:14px;line-height:1.7;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 25%,var(--panel));border-radius:6px;padding:10px 12px}
+.insight b{color:var(--accent)}
+.sub2{font-size:12px;font-weight:400;margin-left:8px;color:var(--muted)}
+.wk{width:100%;height:auto;display:block;margin-top:6px}
+.stack{display:flex;height:12px;border-radius:4px;overflow:hidden;gap:2px}
+.stack i{display:block;height:100%;transition:width .5s}
+.legend{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:4px;font-size:13px}
+.legend li{display:grid;grid-template-columns:10px 1fr 38px 64px;gap:8px;align-items:center}
+.legend .sw{width:10px;height:10px;border-radius:2px}
+.legend em,.rank em{font-style:normal;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+.legend b,.rank b{font-weight:400;text-align:right;font-variant-numeric:tabular-nums}
+.rank{list-style:none;margin:0;padding:0;display:grid;gap:8px;font-size:13px}
+.rank li{display:grid;grid-template-columns:20px minmax(0,1fr) 40px 56px;gap:8px;align-items:center}
+.rk{width:20px;height:20px;border-radius:50%;background:var(--card);border:1px solid var(--line);display:grid;place-items:center;font-size:11px;font-weight:600;box-sizing:border-box}
+.rank li:first-child .rk{background:var(--accent);border-color:var(--accent);color:#fff}
+.rn{min-width:0;display:grid;gap:3px;overflow-wrap:anywhere}
+.rn i{display:block;height:4px;border-radius:2px;background:color-mix(in srgb,var(--accent) 45%,var(--panel))}
+.cmp{grid-template-columns:auto 1fr 1fr 64px;font-size:13px}
+.cmp .hd{color:var(--muted);font-size:12px}
+@media (max-width:1180px){ .app{grid-template-columns:minmax(0,1fr)} .sider{display:none} }
+@media (max-width:820px){
+  body{overflow:auto}
+  .app,.main{height:auto} .main{grid-template-rows:auto auto}
+  .content{grid-template-columns:minmax(0,1fr);grid-template-rows:58vh auto}
+  header{padding-left:max(16px,env(safe-area-inset-left,0px))}
+  .panel{border-left:0;border-top:1px solid var(--line);overflow:visible;padding-left:max(16px,env(safe-area-inset-left,0px))}
+  .clock{display:none}
+}
+.kpi.wide{grid-column:span 1}
+.kgoal{display:grid;grid-template-columns:1fr auto;gap:2px 8px;align-items:center;margin-top:4px}
+.kgoal small{grid-column:1/-1}
+.kbar{height:6px;border-radius:3px;background:var(--card);overflow:hidden}
+.kbar i{display:block;height:100%;background:var(--accent);transition:width .5s}
+.kgoal em{font-style:normal;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.gcard{border:1px solid var(--line);border-radius:8px;padding:12px;display:grid;gap:6px}
+.gcard .gt{font-size:14px;color:var(--muted)} .gcard .gv{font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}
+.gcard .gl{display:flex;justify-content:space-between;font-size:13px;color:var(--muted)} .gcard .gl b{color:var(--ink);font-weight:500}
+.gcard .gbar i{background:var(--accent)}
+.pierow{display:flex;justify-content:center}
+.pie{width:150px;height:150px}
+.tlist{display:grid;gap:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-top:10px}
+.tlist details{border-bottom:1px solid var(--line)} .tlist details:last-child{border-bottom:0}
+.tlist summary{list-style:none;display:grid;grid-template-columns:10px 1fr auto;gap:10px;align-items:center;padding:8px 12px;cursor:pointer;font-size:13px}
+.tlist summary::-webkit-details-marker{display:none}
+.tlist summary:hover{background:var(--card)}
+.tlist .sw{width:10px;height:10px;border-radius:2px}
+.tlist .tn,.tlist .tv{display:grid;gap:0} .tlist .tv{text-align:right}
+.tlist b{font-weight:600;font-variant-numeric:tabular-nums} .tlist em{font-style:normal;font-size:12px;color:var(--muted)}
+.tlist .ti{display:flex;justify-content:space-between;gap:8px;padding:6px 12px 6px 32px;font-size:13px;background:var(--card);font-variant-numeric:tabular-nums}
+.tlist .ti em{margin-left:6px}
+.piewrap{position:relative;width:170px;height:170px;margin:0 auto}
+.piewrap .pie{width:170px;height:170px}
+.piewrap .seg{cursor:pointer;transition:stroke-width .15s}
+.piewrap .seg:hover{stroke-width:20}
+.pc{position:absolute;inset:0;display:grid;place-content:center;text-align:center;pointer-events:none;gap:2px}
+.pc b{font-size:13px;font-weight:600} .pc span{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+.srow{display:grid;grid-template-columns:22px minmax(0,1fr) 70px 70px;gap:8px;align-items:center;width:100%}
+.rk2{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:12px;font-weight:600}
+.sm,.sv{display:grid;min-width:0} .sv{text-align:right}
+.sm b,.sv b{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;overflow-wrap:anywhere} .sm b.n,.sv b.n{font-weight:400}
+.sm em,.sv em{font-style:normal;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.st{height:6px;border-radius:3px;background:var(--card);overflow:hidden} .st i{display:block;height:100%;border-radius:3px}
+.tlist summary{display:block;padding:8px 22px 8px 10px;position:relative}
+.tlist summary::after{content:"›";position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;transition:transform .2s}
+.tlist details[open] summary::after{transform:translateY(-50%) rotate(90deg)}
+.kids{background:var(--card);padding:4px 22px 8px 10px}
+.kids .srow{padding:5px 0}
+.people{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.pp{display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:10px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.pp.off{opacity:.55}
+.av{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-weight:700;color:#1f1f1f}
+.pn,.ps{display:grid;min-width:0} .ps{text-align:right;justify-items:end}
+.pn b,.ps b{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums} .pn em,.ps em{font-style:normal;font-size:12px;color:var(--muted)}
+.ptag{font-size:12px;line-height:20px;padding:0 7px;border-radius:4px;border:1px solid color-mix(in srgb,var(--ok) 45%,var(--panel));background:color-mix(in srgb,var(--ok) 10%,var(--panel));color:color-mix(in srgb,var(--ok) 80%,var(--ink))}
+.ptag.ch{border-color:color-mix(in srgb,var(--warn) 45%,var(--panel));background:color-mix(in srgb,var(--warn) 10%,var(--panel));color:color-mix(in srgb,var(--warn) 80%,var(--ink))}
+.ctag{font-size:11px;font-weight:500;line-height:18px;padding:0 6px;border-radius:4px;margin-left:4px;vertical-align:1px}
+.c-ft{color:#1d5fa8;background:#e6f0fb} .c-pt{color:#6b45b8;background:#f0eafb} .c-ch{color:#2f7d4f;background:#e6f4ea}
+.ptag{border-color:color-mix(in srgb,#1677ff 40%,var(--panel))!important;background:color-mix(in srgb,#1677ff 8%,var(--panel))!important;color:#1d5fa8!important}
+.ptag.ch{border-color:color-mix(in srgb,#52c41a 45%,var(--panel))!important;background:color-mix(in srgb,#52c41a 10%,var(--panel))!important;color:#2f7d4f!important}
+body.mobile .stage,body.mobile .seg,body.mobile #netBtn{display:none}
+body.mobile .content{grid-template-columns:minmax(0,1fr)!important;grid-template-rows:auto!important}
+body.mobile .panel{border-top:0}
+body.mobile .kpi.wide{display:none}
+body.mobile .fab{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:max(16px,env(safe-area-inset-bottom,0px));z-index:15}
+.mback{justify-self:start;height:28px;padding:0 10px;font-size:13px}
+.mnote{font-size:12px;color:var(--muted);background:var(--card);border:1px solid var(--line);border-radius:6px;padding:6px 10px;margin-bottom:12px}
+@media (prefers-reduced-motion:reduce){.tag.s-alarm{animation:none}}
+</style>
+
+<div class="app">
+  <nav class="sider" aria-label="ERP 選單">
+    <div class="brandrow"><div class="logo">E</div><span>ERP 後台</span></div>
+    <ul class="menu" id="menu"></ul>
+  </nav>
+  <div class="main">
+    <header>
+      <div class="brand"><h1>監控分析中心</h1><span class="sub">營運監控・系統監控・趨勢分析</span></div>
+      <span class="chip">示範資料</span>
+      <button class="sys s-run" id="sysChip" type="button"><span class="dot"></span><span id="sysTxt">系統正常</span></button>
+      <div class="seg" role="group" aria-label="顯示方式"><button type="button" data-mode="island" aria-pressed="true">資訊島</button><button type="button" data-mode="dash" aria-pressed="false">儀表板</button></div>
+      <select class="rolesel" id="roleSel" aria-label="檢視身分"><option value="admin">管理者視角</option><option value="staff">櫃台人員視角</option></select>
+      <button class="ghost" id="netBtn" type="button" aria-pressed="false">模擬 API 斷線</button>
+      <button class="report" id="reportBtn" type="button">回報問題</button>
+      <span class="clock" id="clock">--:--</span>
+    </header>
+    <div class="content">
+      <div class="stage" id="stage">
+        <div class="banner" id="banner" hidden><span class="dot s-alarm"></span><span><b>連線中斷</b>・<span id="bannerTxt"></span></span></div>
+        <div class="labels" id="labels"></div>
+        <div class="hint" id="hint">拖曳旋轉・滾輪縮放・點小島放大</div>
+        <button class="btn2 overview" id="overviewBtn" type="button" hidden>看全景</button>
+        <button class="btn fab" id="fabSale" type="button"><span aria-hidden="true">＋</span>登記營收</button>
+        <div class="dash" id="dash" hidden><div class="dgrid" id="dgrid"></div></div>
+      </div>
+      <div class="panel">
+        <section id="kpiSec">
+          <div class="eyebrow">今日概況</div>
+          <div class="kpis">
+            <div class="kpi wide"><span>今日營收</span><b id="kToday">--</b><div class="kgoal"><small id="kTodayG">--</small><div class="kbar"><i id="kTodayBar"></i></div><em id="kTodayP">--</em></div></div>
+            <div class="kpi wide"><span>本月營收累積</span><b id="kMonth">--</b><div class="kgoal"><small id="kMonthG">--</small><div class="kbar"><i id="kMonthBar"></i></div><em id="kMonthP">--</em></div></div>
+            <div class="kpi"><span>今日銷售</span><b id="kTodayN">--</b><small id="kMonthCmp">--</small></div>
+            <div class="kpi"><span>待處理</span><b id="kTodo">--</b><small id="kTodoS">--</small></div>
+          </div>
+        </section>
+        <section id="detail" aria-live="polite"></section>
+        <section>
+          <div class="eyebrow">即時動態</div>
+          <ul class="log" id="log"></ul>
+        </section>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+    <h2 id="dlgTitle">回報問題<button class="x" id="dlgClose" type="button" aria-label="關閉">×</button></h2>
+    <div id="formView" class="done">
+      <div class="field"><label for="fModule">在哪個功能遇到問題</label>
+        <select id="fModule"><option>營收登記</option><option>點燈</option><option>活動報名</option><option>庫存</option><option>客服／課程收費</option><option>排班</option><option>LINE 登記營收</option><option>其他／不確定</option></select></div>
+      <fieldset class="field"><legend>影響程度</legend>
+        <div class="radios">
+          <label><input type="radio" name="fImpact" id="fImpact1" value="完全無法作業">完全無法作業</label>
+          <label><input type="radio" name="fImpact" id="fImpact2" value="可以先用別的方式" checked>可以先用別的方式</label>
+          <label><input type="radio" name="fImpact" id="fImpact3" value="只是想問問">只是想問問</label>
+        </div></fieldset>
+      <div class="field"><label for="fDesc">發生了什麼事（用平常說話的方式寫就好）</label>
+        <textarea id="fDesc" placeholder="例：用 LINE 傳營收給機器人，等很久都沒有回覆"></textarea></div>
+      <div class="field"><label>系統會自動附上這些資訊，你不用另外寫</label><pre class="snap" id="snap"></pre></div>
+      <div id="aiBox"></div>
+      <div class="actions">
+        <button class="btn2" id="askAi" type="button">請 AI 先看看</button>
+        <button class="btn" id="sendEng" type="button">送出給工程師</button>
+      </div>
+    </div>
+    <div id="doneView" class="done" hidden>
+      <div class="note" id="doneNote"></div>
+      <pre class="snap" id="doneText" style="max-height:220px"></pre>
+      <div class="actions"><button class="btn2" id="copyBtn" type="button">複製回報內容</button><button class="btn" id="doneClose" type="button">完成</button></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function(){
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const fmt = n => Math.round(n).toLocaleString('zh-TW');
+const NT = n => 'NT$ ' + fmt(n);
+
+/* ---------- sample ERP data (shape follows UNV.PLAN schema) ---------- */
+const LAMPS = [
+  {k:'BRIGHT',label:'光明燈',c:'#ffc94d',hex:0xffc94d},
+  {k:'LOVE',label:'姻緣燈',c:'#ff8fb1',hex:0xff8fb1},
+  {k:'MEDICINE_BUDDHA',label:'藥師燈',c:'#6fd3e0',hex:0x6fd3e0},
+  {k:'ENLIGHTENMENT',label:'開悟燈',c:'#b49cff',hex:0xb49cff},
+  {k:'WEALTH',label:'招財燈',c:'#ffa15c',hex:0xffa15c},
+  {k:'NUWA',label:'女媧燈',c:'#7fdca0',hex:0x7fdca0},
+];
+const D = {
+  today:12600, target:20000, todayN:8, open:1, month:286400, lastMonth:301200,
+  lamps:{BRIGHT:128,LOVE:35,MEDICINE_BUDDHA:46,ENLIGHTENMENT:63,WEALTH:88,NUWA:12},
+  event:{title:'冬至祈福法會',reg:42,paid:35,cap:60,daysLeft:4},
+  stock:[{name:'前世記憶雷諾曼牌卡',qty:450,safe:100},{name:'前世記憶雷諾曼牌書',qty:300,safe:80},{name:'愛情籤詩卡',qty:450,safe:100},{name:'希臘眾神卡',qty:600,safe:100},{name:'大天使許願卡',qty:190,safe:100},{name:'課程教材包',qty:37,safe:40}],
+  service:{week:17,pending:3},
+  staff:{on:2,charity:0},
+  roster:[{name:'Alex',role:'正職老師',cat:'正職',shift:'12:00–21:00',type:'現場服務',c:'#7fc6d0'},
+    {name:'Bella',role:'兼職老師',cat:'兼職',shift:'12:00–21:00',type:'現場服務',c:'#f3a6c0'},
+    {name:'Chris',role:'公益志工',cat:'公益',shift:'12:00–21:00',type:'公益服務',c:'#ffe08a'}],
+};
+/* system health (shape of GET /api/health) */
+const H = {api:{lat:120,err:0.3}, db:{ok:true,lat:18,locked:false,backupHrs:21.5}, line:{ok:true}, openai:{ok:true}};
+let offline=false, lastOk=Date.now(), staleShown=false;
+const STALE_SEC=5; // 實務建議 120 秒，示範縮短為 5 秒
+const ITEMS = [
+  ['占卜服務',[['塔羅占卜A',1000],['塔羅占卜B',600],['雷諾曼占卜A',1000],['雷諾曼占卜B',600],['冤親債主占卜A',1000],['靈魂居所-ALL',8000],['月老紅線檢測',600],['居家風水檢測',600],['紫微命盤解析',3000],['四柱八字命盤解析',3000],['現場問事服務',200],['一對一諮詢服務',1800]]],
+  ['儀式服務',[['月老紅線儀式',600],['祭改好運',300],['桃花人緣',300],['財神送窮迎福',300],['天赦日',300],['天赦日補財庫',1800],['天赦日補緣庫',1800]]],
+  ['風水服務',[['居家風水調整',5000]]],
+  ['課程服務',[['天秦道學院課程',2000],['直覺塔羅占卜課程',5500],['劇情推演雷諾曼占卜課程',5500]]],
+  ['香油捐贈',[['香油錢',0]]],
+  ['實體商品',[['前世記憶雷諾曼牌卡',600,1],['前世記憶雷諾曼牌書',650,1],['愛情籤詩卡',500,1],['希臘眾神卡',500,1],['大天使許願卡',500,1],['課程教材包',600,1]]],
+].flatMap(([type,list])=>list.map(([name,price,inv])=>({name,type,price,stock:inv?name:null})));
+const PEOPLE = ['林小姐','王先生','陳小姐','張太太','李先生','黃小姐','吳先生'];
+const PAY = ['現金','匯款','Line Pay','刷卡'];
+
+/* ---------- islands = ERP modules ---------- */
+const ISL = [
+  {id:'hub',name:'數據總覽',tables:['Sale','PettyCashEntry','FixedExpense','報表彙總'],r:2.5},
+  {id:'sales',name:'營收櫃台',tables:['Sale','SaleLine','Item'],r:2.05},
+  {id:'lamp',name:'點燈殿',tables:['LampRecord','LampPrice'],r:2.05},
+  {id:'event',name:'活動報名',tables:['Event','EventRegistration'],r:2.05},
+  {id:'stock',name:'庫存小倉',tables:['Item','InventoryMovement'],r:2.05},
+  {id:'service',name:'客服小屋',tables:['Customer','CustomerServiceRecord','CoursePayment'],r:2.05},
+  {id:'staff',name:'人員排班',tables:['Employee','Shift'],r:2.05},
+  {id:'ops',name:'機房',tables:['GET /api/health','DB','LINE webhook','OpenAI'],r:1.65},
+];
+ISL.forEach((s,i)=>{ if(i===0){s.pos=[0,0,0];return;} if(s.id==='ops'){s.pos=[9.0,0,-7.6];return;} const a=(i-1)/6*Math.PI*2+Math.PI/4; const dd=s.id==='sales'?7.6:7.2; s.pos=[Math.cos(a)*dd,0,Math.sin(a)*dd]; });
+ISL.forEach(s=>{ s.sc=s.id==='sales'?1.18:1; });
+const BIZ = ISL.filter(s=>s.id!=='ops');
+/* analysis sample data (shape from Sale / SaleLine / Item.type) */
+D.week=[9800,14200,7600,18400,11200,21600]; D.monthN=152; D.lastMonthN=168; D.monthTarget=600000;
+(function(){ const now=new Date(), td=now.getDate(), dim=new Date(now.getFullYear(),now.getMonth()+1,0).getDate(), rest=D.month-D.today;
+  const w=[]; for(let i=1;i<td;i++) w.push(0.6+((i*37)%10)/10+(new Date(now.getFullYear(),now.getMonth(),i).getDay()%6===0?0.6:0));
+  const sw=w.reduce((a,b)=>a+b,0)||1; D.daily=Array.from({length:dim},(_,i)=>i+1<td?Math.round(rest*w[i]/sw/100)*100:0); D.dim=dim; D.td=td; })();
+D.byType={'占卜服務':108800,'課程服務':63000,'點燈服務':45600,'儀式服務':28700,'實體商品':22900,'風水服務':10000,'香油捐贈':7400};
+D.top={};
+(function(){ const pool=t=>t==='點燈服務'?[['光明燈',1200],['招財燈',1200],['女媧燈',3600]].map(([name,price])=>({name,price,type:t})):ITEMS.filter(i=>i.type===t);
+  Object.keys(D.byType).forEach(t=>{ const its=pool(t).slice(0,3), wts=[0.5,0.3,0.2].slice(0,its.length), ws=wts.reduce((a,b)=>a+b,0); let sum=0;
+    its.forEach((it,i)=>{ const pr=it.price||600, q=Math.max(1,Math.round(D.byType[t]*wts[i]/ws/pr)); D.top[it.name]={n:q,amt:q*pr,type:t}; sum+=q*pr; });
+    D.byType[t]=sum; });
+  const diff=D.month-Object.values(D.byType).reduce((a,b)=>a+b,0); D.byType['香油捐贈']+=diff; if(D.top['香油錢']) D.top['香油錢'].amt+=diff; })();
+function track(it,q,amt){ D.byType[it.type]=(D.byType[it.type]||0)+amt; const t=D.top[it.name]||(D.top[it.name]={n:0,amt:0,type:it.type}); t.n+=q; t.amt+=amt; }
+const byId = id => ISL.find(s=>s.id===id);
+
+function onDuty(){ return D.roster.slice(0,D.staff.on); }
+function lampTotal(){ return Object.values(D.lamps).reduce((a,b)=>a+b,0); }
+function lowStock(){ return D.stock.filter(s=>s.qty<s.safe); }
+/* status rules: computed from data, not random */
+function evaluate(id){
+  switch(id){
+    case 'hub': return {st:'hub',rules:[['所有模組的營收、支出與點燈資料彙總到這裡',true]]};
+    case 'sales': return {st:D.open?'warn':'run',reason:D.open?D.open+' 筆銷售單尚未結帳':null,
+      rules:[['Sale.status = OPEN 超過 0 筆 → 黃燈',D.open>0],['今日營收低於上月同日均值 50% → 黃燈',false]]};
+    case 'lamp': return {st:'run',rules:[['點燈資料正常寫入 LampRecord → 綠燈',true],['去年點燈、今年未續點 → 提醒（待規劃）',false]]};
+    case 'event': { const p=D.event.reg-D.event.paid; const full=D.event.reg>=D.event.cap;
+      const w=(p>0&&D.event.daysLeft<=5)||full;
+      return {st:w?'warn':'run',reason:full?'名額已滿':(p>0&&D.event.daysLeft<=5?p+' 位報名者尚未付款，活動剩 '+D.event.daysLeft+' 天':null),
+      rules:[['EventRegistration.status = REGISTERED 且活動 5 天內 → 黃燈',p>0&&D.event.daysLeft<=5],['報名人數達名額上限 → 黃燈',full]]}; }
+    case 'stock': { const l=lowStock();
+      return {st:l.length?'alarm':'run',reason:l.length?l.map(s=>s.name).join('、')+' 低於安全庫存':null,
+      rules:[['庫存量 < 安全庫存 → 紅燈（需新增 Item.safetyStock 欄位）',l.length>0]]}; }
+    case 'service': return {st:D.service.pending?'warn':'run',reason:D.service.pending?D.service.pending+' 筆課程匯款待確認':null,
+      rules:[['CoursePayment.status = 待確認 → 黃燈',D.service.pending>0]]};
+    case 'staff': { const n=D.staff.on; return {st:n===0?'alarm':n<2?'warn':'run',reason:n===0?'營業時間內沒有人在班':n<2?'只有 1 人在班（通常 2 人）':null,
+      rules:[['營業時間（12:00–21:00）內無人在班 → 紅燈',n===0],['在班少於 2 人 → 黃燈',n===1],['公益服務人員不計入正式人力',false]]}; }
+    case 'ops': {
+      const r=[
+        ['API 無回應 → 紅燈（由前端判斷）',offline,'alarm'],
+        ['DB 連線失敗 → 紅燈',!H.db.ok,'alarm'],
+        ['API 5xx 錯誤率 > 2% → 黃燈',H.api.err>2,'warn'],
+        ['DB 查詢 > 500ms 或 database is locked → 黃燈',H.db.lat>500||H.db.locked,'warn'],
+        ['最後備份超過 24 小時 → 黃燈',H.db.backupHrs>24,'warn'],
+        ['LINE webhook 或 OpenAI 呼叫失敗 → 黃燈（LINE 登記營收暫停）',!H.line.ok||!H.openai.ok,'warn'],
+      ];
+      const st=r.some(x=>x[1]&&x[2]==='alarm')?'alarm':r.some(x=>x[1])?'warn':'run';
+      return {st,rules:r.map(x=>[x[0],x[1]])};
+    }
+  }
+}
+function mainMetric(id){
+  return {hub:'本月 '+NT(D.month), sales:'今日 '+NT(D.today), lamp:'今年 '+fmt(lampTotal())+' 盞',
+    event:'報名 '+D.event.reg+' / '+D.event.cap, stock:'低庫存 '+lowStock().length+' 項',
+    service:'待確認 '+D.service.pending+' 筆', staff:'在班 '+D.staff.on+' 人：'+onDuty().map(r=>r.name).join('、'),
+    ops: offline?'API 無回應':'API '+H.api.lat+'ms・DB '+(H.db.ok?H.db.lat+'ms':'離線')}[id];
+}
+
+/* ---------- three ---------- */
+const stage=document.getElementById('stage');
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+stage.prepend(renderer.domElement);
+const scene=new THREE.Scene();
+const cam=new THREE.OrthographicCamera(-10,10,10,-10,-100,200);
+cam.position.set(18,17,20); cam.lookAt(0,0,0);
+const controls=new THREE.OrbitControls(cam,renderer.domElement);
+controls.enableDamping=true; controls.minZoom=0.6; controls.maxZoom=3.2; controls.minPolarAngle=0.4; controls.maxPolarAngle=1.25; controls.screenSpacePanning=true;
+
+scene.add(new THREE.AmbientLight(0xffffff,0.3));
+scene.add(new THREE.HemisphereLight(0xdcecff,0xe8d6c0,0.3));
+const sun=new THREE.DirectionalLight(0xfff0d8,0.8); sun.position.set(10,20,12); sun.castShadow=true;
+sun.shadow.mapSize.set(1024,1024); Object.assign(sun.shadow.camera,{left:-14,right:14,top:14,bottom:-14,near:1,far:60}); sun.shadow.bias=-0.001;
+scene.add(sun);
+
+const grad=new THREE.DataTexture(new Uint8Array([95,165,225]),3,1,THREE.LuminanceFormat); grad.minFilter=grad.magFilter=THREE.NearestFilter; grad.needsUpdate=true;
+const T=(c,o={})=>new THREE.MeshToonMaterial(Object.assign({color:c,gradientMap:grad},o));
+const m={grass:T(0xa8dcc0),grass2:T(0xc4ead3),cookie:T(0xf5d3a2),cookie2:T(0xe8b98d),choco:T(0xc79576),white:T(0xfbfcfd),pink:T(0x7fc6d0),
+  red:T(0xf47c7c),roof:T(0xe86d6d),wood:T(0xd9a46c),wood2:T(0xb98552),mint:T(0x9fd9c9),lav:T(0xb4c6ea),sky:T(0x8fc3e0),butter:T(0xffe08a),
+  leaf:T(0x79cf86),leaf2:T(0x9be0a0),ink:T(0x56627a),gold:T(0xffcf4d),skin:T(0xffd9bf)};
+
+function add(g,geo,mat,x,y,z,opt={}){ const o=new THREE.Mesh(geo,mat); o.position.set(x,y,z); o.castShadow=opt.cast!==false; o.receiveShadow=true; if(opt.ry) o.rotation.y=opt.ry; if(opt.rx) o.rotation.x=opt.rx; if(opt.rz) o.rotation.z=opt.rz; g.add(o); return o; }
+const B=(w,h,d)=>new THREE.BoxGeometry(w,h,d), C=(rt,rb,h,s=20)=>new THREE.CylinderGeometry(rt,rb,h,s), S=(r,ws=16,hs=12)=>new THREE.SphereGeometry(r,ws,hs);
+
+function tree(g,x,z,s=1){ add(g,C(0.07*s,0.09*s,0.35*s,8),m.wood2,x,0.35+0.17*s,z); add(g,S(0.32*s,12,10),m.leaf,x,0.35+0.5*s,z); add(g,S(0.22*s,12,10),m.leaf2,x+0.12*s,0.35+0.72*s,z-0.05*s); }
+
+const pick=[]; const anim=[];
+ISL.forEach((s,idx)=>{
+  const g=new THREE.Group(); g.position.set(...s.pos); g.scale.setScalar(s.sc); g.userData.phase=idx*0.9;
+  const r=s.r;
+  const gm=T(0x86c64e);
+  add(g,C(r,r*0.97,0.3,28),gm,0,0.15,0);
+  add(g,C(r*0.99,r*0.93,0.38,28),m.cookie,0,-0.19,0);
+  add(g,C(r*0.93,r*0.82,0.34,28),m.cookie2,0,-0.55,0);
+  const cone=add(g,new THREE.ConeGeometry(r*0.82,1.5,28),m.choco,0,-1.47,0,{rx:Math.PI});
+  // grass drips
+  for(let k=0;k<9;k++){ const a=k/9*Math.PI*2+idx; add(g,S(0.2,10,8),gm,Math.cos(a)*r*0.98,0.05,Math.sin(a)*r*0.98,{cast:false}).scale.set(1,0.8,1); }
+  buildIsland(g,s);
+  buildEmblem(g,s);
+  // status balloon
+  const bal=new THREE.Group(); bal.position.set(r*0.62,0,-r*0.62);
+  const str=add(bal,C(0.012,0.012,1.0,4),m.ink,0,0.8,0,{cast:false});
+  const ball=add(bal,S(0.24,18,14),T(0x3fbf83),0,1.45,0); ball.scale.set(1,1.15,1);
+  add(bal,new THREE.ConeGeometry(0.05,0.08,8),ball.material,0,1.2,0,{rx:Math.PI});
+  g.add(bal); s.balloon=ball; s.balGroup=bal;
+  s.group=g; g.traverse(o=>{ if(o.isMesh){o.userData.island=s.id; pick.push(o);} });
+  scene.add(g);
+});
+
+
+/* ---------- 溫馨小屋風格：營收櫃台（樣品）---------- */
+function buildCozyShop(g){
+  const k={wall:T(0xefe4cf),timber:T(0x6b4128),door:T(0xc8743a),doorDk:T(0x9c5428),plank:T(0xd39a5c),plankDk:T(0xa8703f),
+    deck:T(0x9a6236),tile:T(0xb94a2c),tileDk:T(0x8c3420),gable:T(0xe2c79c),leafA:T(0x6cb83a),leafB:T(0x93cf45),leafC:T(0x4e9a30),
+    trunk:T(0x8a5a34),apple:T(0xe8443a),appleY:T(0xf5c542),soil:T(0x6a4630),stone:T(0xe6b874),stoneIn:T(0xb57a3a),
+    red:T(0xe24a3b),cream:T(0xfff6e6),board:T(0x34503f),chalk:T(0xf3efe2),basket:T(0xb57a3f),basketRim:T(0x8a5628),metal:T(0x3c3c44),
+    glass:new THREE.MeshToonMaterial({color:0xfff0b0,gradientMap:grad,emissive:0xffd36b,emissiveIntensity:0.6}),
+    win:new THREE.MeshToonMaterial({color:0xffe7a6,gradientMap:grad,emissive:0xffc95a,emissiveIntensity:0.35})};
+  const fruitCols=[0x6fb6e8,0x8ccf5a,0xf3a6c0,0xf7d65a,0xe8443a,0x9b8ce0];
+  // 木棧平台
+  add(g,B(2.3,0.32,1.7),k.deck,-0.25,0.46,-0.45);
+  add(g,B(2.34,0.05,1.74),k.plank,-0.25,0.645,-0.45);
+  for(let i=0;i<9;i++) add(g,B(0.03,0.3,0.02),k.plankDk,-1.35+i*0.27,0.46,0.41,{cast:false});
+  // 小屋主體
+  const hx=-0.45,hz=-0.75,fz=-0.25;
+  add(g,B(1.5,1.0,1.0),k.wall,hx,1.17,hz);
+  const tb=(w,h,x,y,z,rz=0,ry=0)=>add(g,B(w,h,0.04),k.timber,x,y,z,{rz,ry,cast:false});
+  [-1.17,-0.45,0.27].forEach(x=>tb(0.08,1.0,x,1.17,fz+0.02));
+  [0.7,1.17,1.63].forEach(y=>tb(1.52,0.07,hx,y,fz+0.02));
+  tb(0.62,0.05,-0.1,0.93,fz+0.025,0.72);
+  // 側面木框（+x 面）
+  const sx=0.3+0.02;
+  [-1.23,-0.27].forEach(z=>add(g,B(0.04,1.0,0.08),k.timber,sx,1.17,z,{cast:false}));
+  [0.7,1.63].forEach(y=>add(g,B(0.04,0.07,1.02),k.timber,sx,y,hz,{cast:false}));
+  // 正門（含交叉木條）
+  add(g,B(0.5,0.78,0.05),k.doorDk,-0.82,1.04,fz+0.03);
+  add(g,B(0.42,0.72,0.06),k.door,-0.82,1.01,fz+0.05);
+  add(g,B(0.06,0.8,0.02),k.doorDk,-0.82,1.01,fz+0.085,{rz:0.52,cast:false});
+  add(g,B(0.06,0.8,0.02),k.doorDk,-0.82,1.01,fz+0.085,{rz:-0.52,cast:false});
+  add(g,S(0.03,8,6),k.metal,-0.66,1.0,fz+0.1,{cast:false});
+  // 側門
+  add(g,B(0.06,0.7,0.4),k.door,sx+0.02,1.0,-0.75);
+  add(g,B(0.02,0.74,0.05),k.doorDk,sx+0.05,1.0,-0.75,{rx:0.6,cast:false});
+  // 店面窗戶＋窗台盆栽
+  add(g,B(0.5,0.4,0.05),k.timber,-0.08,1.4,fz+0.03);
+  add(g,B(0.42,0.32,0.06),k.win,-0.08,1.4,fz+0.045,{cast:false});
+  add(g,B(0.04,0.32,0.07),k.timber,-0.08,1.4,fz+0.05,{cast:false});
+  add(g,B(0.62,0.05,0.2),k.plank,-0.08,1.17,fz+0.1);
+  [[-0.28,k.leafA],[-0.08,k.leafB],[0.12,k.leafC]].forEach(([x,lm])=>{ add(g,C(0.055,0.045,0.09,10),k.door,x,1.24,fz+0.12); add(g,S(0.07,10,8),lm,x,1.33,fz+0.12); });
+  // 爬藤
+  for(let i=0;i<9;i++){ const y=0.72+i*0.11, x=-0.45+Math.sin(i*1.3)*0.06; add(g,S(0.06,8,6),i%2?k.leafA:k.leafC,x+(i%2?0.06:-0.06),y,fz+0.07,{cast:false}).scale.set(1.2,0.8,0.5); }
+  // 山牆
+  const sh=new THREE.Shape(); sh.moveTo(-0.5,0); sh.lineTo(0.5,0); sh.lineTo(0.5,0.12); sh.lineTo(0,0.5); sh.lineTo(-0.5,0.12); sh.closePath();
+  const gg=new THREE.ExtrudeGeometry(sh,{depth:0.05,bevelEnabled:false});
+  [0.25,-1.2].forEach(x=>add(g,gg,k.gable,x,1.67,hz,{ry:Math.PI/2}));
+  // 瓦片屋頂
+  const th=0.62, L=0.7/Math.cos(th);
+  [1,-1].forEach(side=>{ const rg=new THREE.Group(); rg.position.set(hx,2.15,hz); rg.rotation.x=side*th;
+    add(rg,B(1.84,0.05,L),k.tileDk,0,-0.06,side*L/2);
+    for(let i=0;i<11;i++) add(rg,C(0.085,0.085,L,10),k.tile,-0.85+i*0.17,0,side*L/2,{rx:Math.PI/2});
+    [0.33,0.66].forEach(f=>add(rg,B(1.86,0.03,0.04),k.tileDk,0,0.07,side*L*f,{cast:false}));
+    add(rg,B(1.9,0.07,0.06),k.timber,0,-0.03,side*(L+0.02));
+    g.add(rg); });
+  add(g,C(0.09,0.09,1.9,10),k.tileDk,hx,2.17,hz,{rz:Math.PI/2});
+  // 外伸木樑＋吊燈
+  const lamps=[];
+  [[0.3,0.95,1],[-1.2,-1.65,-1]].forEach(([x0,x1,d])=>{ const cx=(x0+x1)/2, len=Math.abs(x1-x0)+0.1;
+    add(g,B(len,0.09,0.09),k.plank,cx,1.6,fz-0.05);
+    const lx=x1-d*0.08; add(g,C(0.01,0.01,0.14,4),k.metal,lx,1.49,fz-0.05,{cast:false});
+    add(g,new THREE.ConeGeometry(0.1,0.08,10),k.metal,lx,1.4,fz-0.05);
+    lamps.push(add(g,S(0.1,14,10),k.glass.clone(),lx,1.29,fz-0.05,{cast:false})); });
+  anim.push(t=>lamps.forEach((l,i)=>{ l.material.emissiveIntensity=0.55+0.2*Math.sin(t*2+i*1.7); }));
+  // 蓬鬆樹（屋後）＋蘋果
+  add(g,C(0.11,0.15,1.3,10),k.trunk,-1.2,1.27,-1.45);
+  const puff=(cx,cy,cz,R,pal,n=14,seed=1)=>{ for(let i=0;i<n;i++){ const a=i*2.399+seed, u=((i*0.618+seed*0.37)%1)*2-1, rr=R*(0.55+0.45*Math.sqrt(1-u*u));
+      const r2=R*(0.42+0.18*((i*37+seed*11)%10)/10);
+      add(g,S(r2,12,10),pal[i%pal.length],cx+Math.cos(a)*rr*0.75,cy+u*R*0.55,cz+Math.sin(a)*rr*0.75); } };
+  puff(-1.2,2.2,-1.45,0.62,[k.leafA,k.leafB,k.leafC],16,1);
+  add(g,S(0.5,14,12),k.leafA,-1.2,2.45,-1.45);
+  [[-0.72,2.35,-1.2],[-1.55,2.0,-1.0],[-0.9,2.65,-1.75],[-1.4,2.7,-1.25]].forEach(([x,y,z],i)=>{ add(g,S(0.09,10,8),i%2?k.appleY:k.apple,x,y,z); add(g,S(0.035,6,5),k.leafC,x,y+0.09,z,{cast:false}); });
+  // 右前蓬鬆樹叢
+  puff(1.35,0.62,-0.15,0.5,[k.leafB,k.leafA,k.leafC],13,4);
+  add(g,S(0.42,14,12),k.leafB,1.35,0.85,-0.15);
+  // 木樓梯
+  add(g,B(0.58,0.21,0.2),k.plank,-0.82,0.405,0.5);
+  add(g,B(0.58,0.1,0.2),k.plank,-0.82,0.35,0.69);
+  [0.5,0.69].forEach(z=>add(g,B(0.6,0.02,0.02),k.plankDk,-0.82,z===0.5?0.51:0.4,z+0.1,{cast:false}));
+  // 踏腳石
+  [[-0.78,0.98],[-0.35,1.32]].forEach(([x,z])=>{ add(g,C(0.2,0.22,0.06,12),k.stone,x,0.32,z); add(g,C(0.12,0.12,0.02,10),k.stoneIn,x,0.36,z,{cast:false}); });
+  // 商品竹籃（營收主題）
+  [[-0.05,0.05,0],[0.42,0.08,3]].forEach(([x,z,o])=>{ add(g,B(0.42,0.18,0.34),k.basket,x,0.74,z); add(g,B(0.44,0.04,0.36),k.basketRim,x,0.84,z);
+    for(let i=0;i<5;i++) add(g,S(0.075,10,8),T(fruitCols[(i+o)%fruitCols.length]),x-0.13+(i%3)*0.13,0.87,z-0.07+Math.floor(i/3)*0.14); });
+  // 價目小黑板
+  const bd=new THREE.Group(); bd.position.set(0.78,0.65,0.22); bd.rotation.y=-0.5;
+  add(bd,B(0.3,0.34,0.03),k.board,0,0.19,0,{rx:-0.18}); add(bd,B(0.34,0.03,0.05),k.plank,0,0.37,-0.03);
+  [0.26,0.19,0.12].forEach((y,i)=>add(bd,B(0.2-i*0.04,0.02,0.01),k.chalk,-0.02,y,0.02-(0.26-y)*0.18,{rx:-0.18,cast:false}));
+  g.add(bd);
+  // 木桶＋嫩芽
+  add(g,C(0.19,0.17,0.42,14),k.deck,0.6,0.88,-1.0);
+  [0.72,1.02].forEach(y=>add(g,C(0.2,0.2,0.04,14),k.metal,0.6,y,-1.0,{cast:false}));
+  add(g,C(0.17,0.17,0.02,14),k.soil,0.6,1.09,-1.0,{cast:false});
+  add(g,C(0.012,0.012,0.14,4),k.leafC,0.6,1.17,-1.0); add(g,S(0.07,8,6),k.leafA,0.53,1.25,-1.0).scale.set(1.2,0.5,0.8); add(g,S(0.07,8,6),k.leafA,0.67,1.25,-1.0).scale.set(1.2,0.5,0.8);
+  // 木箱＋格紋坐墊
+  const cv=document.createElement('canvas'); cv.width=cv.height=16; const cx2=cv.getContext('2d');
+  for(let y=0;y<4;y++) for(let x=0;x<4;x++){ cx2.fillStyle=(x+y)%2?'#ffffff':'#e25b5b'; cx2.fillRect(x*4,y*4,4,4); }
+  const ct=new THREE.CanvasTexture(cv); ct.magFilter=THREE.NearestFilter;
+  add(g,B(0.44,0.4,0.44),k.plankDk,-1.62,0.5,0.15);
+  [0.38,0.62].forEach(y=>add(g,B(0.46,0.04,0.46),k.plank,-1.62,y,0.15,{cast:false}));
+  add(g,B(0.4,0.09,0.4),new THREE.MeshToonMaterial({map:ct,gradientMap:grad}),-1.62,0.75,0.15);
+  // 樹樁＋大蘋果
+  add(g,C(0.2,0.23,0.24,14),k.trunk,-1.32,0.42,0.9); add(g,C(0.19,0.19,0.02,14),k.stone,-1.32,0.55,0.9,{cast:false});
+  add(g,S(0.18,14,12),k.apple,-1.32,0.73,0.9); add(g,C(0.015,0.015,0.1,4),k.trunk,-1.32,0.94,0.9); add(g,S(0.05,8,6),k.leafA,-1.27,0.97,0.9).scale.set(1.4,0.5,0.8);
+  // 蘑菇
+  [[-1.0,0.62,1],[-0.86,0.72,0.7]].forEach(([x,z,sc])=>{ add(g,C(0.035*sc,0.045*sc,0.12*sc,8),k.cream,x,0.36,z);
+    add(g,new THREE.SphereGeometry(0.1*sc,12,8,0,Math.PI*2,0,Math.PI/2),k.red,x,0.41,z);
+    [[0.04,0.05],[-0.05,0.03],[0.0,-0.06]].forEach(([dx,dz])=>add(g,S(0.017*sc,6,5),k.cream,x+dx*sc,0.47,z+dz*sc,{cast:false})); });
+  // 營收金幣堆（依今日營收／目標長高）＋進度環
+  const cp=new THREE.Group(); cp.position.set(1.22,0.3,0.66); g.add(cp);
+  const coinM=new THREE.MeshToonMaterial({color:0xf5c542,gradientMap:grad,emissive:0xb07a10,emissiveIntensity:0.25});
+  add(cp,C(0.36,0.38,0.05,24),k.plankDk,0,0.025,0);
+  add(cp,new THREE.RingGeometry(0.27,0.33,40),new THREE.MeshBasicMaterial({color:0xcfc6b4,side:THREE.DoubleSide}),0,0.056,0,{rx:-Math.PI/2,cast:false});
+  const prog=add(cp,new THREE.RingGeometry(0.27,0.33,40,1,0,0.01),new THREE.MeshBasicMaterial({color:0xf2b632,side:THREE.DoubleSide}),0,0.058,0,{rx:-Math.PI/2,cast:false});
+  const coins=[]; for(let i=0;i<12;i++){ const c=add(cp,C(0.13,0.13,0.045,18),coinM,Math.sin(i*2.1)*0.025,0.08+i*0.048,Math.cos(i*1.7)*0.025); c.rotation.y=i*0.7; c.visible=false; coins.push(c); }
+  [[0.2,0.1],[-0.18,0.16],[0.12,-0.2]].forEach(([x,z],i)=>add(cp,C(0.1,0.1,0.035,14),coinM,x,0.08,z,{rz:0.25*(i-1)}));
+  const spark=[0,1,2,3].map(()=>add(cp,new THREE.OctahedronGeometry(0.04),new THREE.MeshBasicMaterial({color:0xfff2b0}),0,0.6,0,{cast:false}));
+  COINPILE={coins,prog,spark,coinM,done:false,last:-1};
+  anim.push(t=>{ const P=COINPILE; spark.forEach((sp,i)=>{ sp.visible=P.done; if(!P.done) return; const a=t*1.5+i*Math.PI/2; const top=0.12+P.n*0.048;
+      sp.position.set(Math.cos(a)*0.22,top+0.08+Math.sin(t*3+i)*0.06,Math.sin(a)*0.22); sp.rotation.y=t*3; });
+    coinM.emissiveIntensity=P.done?0.45+Math.sin(t*4)*0.2:0.25; });
+  // 鬱金香花箱
+  add(g,B(0.62,0.2,0.28),k.plankDk,0.45,0.4,0.98); add(g,B(0.56,0.02,0.22),k.soil,0.45,0.5,0.98,{cast:false});
+  [0.27,0.45,0.63].forEach((x,i)=>{ add(g,C(0.012,0.012,0.22,4),k.leafC,x,0.6,0.98,{cast:false}); add(g,S(0.06,10,8),i===1?k.appleY:k.red,x,0.74,0.98).scale.set(1,1.35,1); add(g,S(0.05,8,6),k.leafA,x+0.05,0.56,0.98,{cast:false}).scale.set(0.6,1.4,0.4); });
+}
+
+/* ---------- 小島主題標誌 ---------- */
+function glyphTex(txt,bg,fg,size=128,font='bold 78px Arial, "Noto Sans TC", sans-serif',round=true){
+  const c=document.createElement('canvas'); c.width=c.height=size; const x=c.getContext('2d');
+  x.fillStyle=bg; if(round){ x.beginPath(); x.arc(size/2,size/2,size/2,0,Math.PI*2); x.fill(); } else x.fillRect(0,0,size,size);
+  x.fillStyle=fg; x.font=font; x.textAlign='center'; x.textBaseline='middle'; x.fillText(txt,size/2,size/2+4);
+  const t=new THREE.CanvasTexture(c); t.anisotropy=4; return t; }
+function buildEmblem(g,s){
+  const EMB_H={hub:4.15,sales:3.5,lamp:3.15,event:2.8,stock:2.95,service:3.0,staff:3.05,ops:2.65};
+  const e=new THREE.Group(), h=EMB_H[s.id]; e.position.y=h; e.scale.setScalar(1.2); s.tagH=h+0.82;
+  const L=(c,ei=0.18)=>new THREE.MeshToonMaterial({color:c,gradientMap:grad,emissive:c,emissiveIntensity:ei});
+  const spin=[];
+  if(s.id==='sales'){ // 金幣
+    const ft=glyphTex('$','#f5c542','#b8860b'); ft.center.set(0.5,0.5); ft.rotation=Math.PI/2;
+    const face=new THREE.MeshToonMaterial({map:ft,gradientMap:grad,emissive:0x8a6a10,emissiveIntensity:0.25});
+    const coin=new THREE.Mesh(new THREE.CylinderGeometry(0.42,0.42,0.1,32),[L(0xe0a82e),face,face]); coin.rotation.x=Math.PI/2; coin.castShadow=true;
+    const rim=new THREE.Mesh(new THREE.TorusGeometry(0.42,0.04,8,32),L(0xc8901f)); 
+    const cg=new THREE.Group(); cg.add(coin,rim); e.add(cg); spin.push(cg);
+  }
+  if(s.id==='hub'){ // 長條圖
+    const bg=new THREE.Group();
+    [[0.32,0x7fc6d0],[0.52,0x2b91ad],[0.74,0x126a7a]].forEach(([hh,c],i)=>{ const b=new THREE.Mesh(new THREE.BoxGeometry(0.2,hh,0.2),L(c,0.12)); b.position.set(-0.26+i*0.26,hh/2-0.35,0); b.castShadow=true; bg.add(b); });
+    const base=new THREE.Mesh(new THREE.BoxGeometry(0.86,0.05,0.3),L(0x6d7a86,0.05)); base.position.y=-0.37; bg.add(base);
+    const arrow=new THREE.Mesh(new THREE.ConeGeometry(0.09,0.18,12),L(0xffc53d,0.3)); arrow.position.set(0.36,0.5,0); arrow.rotation.z=-0.6; bg.add(arrow);
+    e.add(bg); spin.push(bg);
+  }
+  if(s.id==='lamp'){ // 油燈（三盞陶碗燈）
+    const clay=L(0xc9783f,0.15), clayD=L(0x9c5428,0.1), oil=L(0x8a4a12,0.2), gold=L(0xf2b632,0.3);
+    const glowM=new THREE.MeshBasicMaterial({color:0xffa53a,transparent:true,opacity:0.28,blending:THREE.AdditiveBlending,depthWrite:false});
+    const flames=[];
+    [[0,0,0.16,1],[-0.3,0.02,-0.12,0.85],[0.3,0.02,-0.12,0.85]].forEach(([x,y,z,sc],i)=>{
+      const lg=new THREE.Group(); lg.position.set(x,y,z); lg.scale.setScalar(sc);
+      const bowl=new THREE.Mesh(new THREE.SphereGeometry(0.22,20,10,0,Math.PI*2,Math.PI/2,Math.PI/2),clay); bowl.scale.set(1,0.62,1); bowl.material.side=THREE.DoubleSide; lg.add(bowl);
+      const rim=new THREE.Mesh(new THREE.TorusGeometry(0.215,0.022,8,24),clayD); rim.rotation.x=Math.PI/2; lg.add(rim);
+      const band=new THREE.Mesh(new THREE.TorusGeometry(0.19,0.012,6,24),gold); band.rotation.x=Math.PI/2; band.position.y=-0.05; lg.add(band);
+      for(let d=0;d<8;d++){ const a=d/8*Math.PI*2; const dot=new THREE.Mesh(new THREE.SphereGeometry(0.014,6,5),gold); dot.position.set(Math.cos(a)*0.175,-0.08,Math.sin(a)*0.175); lg.add(dot); }
+      const surf=new THREE.Mesh(new THREE.CircleGeometry(0.195,20),oil); surf.rotation.x=-Math.PI/2; surf.position.y=-0.02; lg.add(surf);
+      const wick=new THREE.Mesh(new THREE.CylinderGeometry(0.008,0.008,0.06,5),L(0x222222,0)); wick.position.y=0.01; lg.add(wick);
+      const core=new THREE.Mesh(new THREE.SphereGeometry(0.035,10,8),new THREE.MeshBasicMaterial({color:0xfffbe6})); core.scale.set(1,2.2,1); core.position.y=0.08; lg.add(core);
+      const fl=new THREE.Mesh(new THREE.SphereGeometry(0.06,12,10),new THREE.MeshBasicMaterial({color:0xffc94a})); fl.scale.set(1,2.6,1); fl.position.y=0.13; lg.add(fl);
+      const tip=new THREE.Mesh(new THREE.ConeGeometry(0.035,0.12,10),new THREE.MeshBasicMaterial({color:0xffe08a,transparent:true,opacity:0.85})); tip.position.y=0.3; lg.add(tip);
+      const glow=new THREE.Mesh(new THREE.SphereGeometry(0.2,14,10),glowM.clone()); glow.scale.set(1,1.7,1); glow.position.y=0.16; lg.add(glow);
+      flames.push({fl,core,tip,glow,ph:i*1.9});
+      e.add(lg); });
+    anim.push(t=>flames.forEach(f=>{ const w=Math.sin(t*9+f.ph)*0.08+Math.sin(t*23+f.ph)*0.04;
+      f.fl.scale.set(1-w*0.5,2.6+w*3,1-w*0.5); f.tip.position.y=0.3+w*0.15; f.tip.rotation.z=Math.sin(t*5+f.ph)*0.15; f.fl.rotation.z=Math.sin(t*4+f.ph)*0.08;
+      f.glow.material.opacity=0.22+Math.abs(w)*0.6; f.core.scale.y=2.2+w*2; }));
+  }
+  if(s.id==='event'){ // 日曆
+    const cal=new THREE.Group();
+    const page=new THREE.Mesh(new THREE.BoxGeometry(0.66,0.6,0.08),[L(0xffffff,0.05),L(0xffffff,0.05),L(0xffffff,0.05),L(0xffffff,0.05),
+      new THREE.MeshToonMaterial({map:glyphTex('21','#ffffff','#3d4858',128,'bold 70px Arial, sans-serif',false),gradientMap:grad,emissive:0x444444,emissiveIntensity:0.2}),L(0xffffff,0.05)]);
+    page.position.y=-0.06; cal.add(page);
+    const top=new THREE.Mesh(new THREE.BoxGeometry(0.66,0.18,0.09),L(0xe8443a,0.2)); top.position.y=0.3; cal.add(top);
+    [-0.18,0.18].forEach(x=>{ const r=new THREE.Mesh(new THREE.TorusGeometry(0.05,0.018,6,12),L(0x6d7a86,0.05)); r.position.set(x,0.4,0); cal.add(r); });
+    e.add(cal); spin.push(cal);
+  }
+  if(s.id==='stock'){ // 紙箱
+    const bx=new THREE.Group();
+    const box=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.46,0.5),L(0xc8935a,0.1)); box.castShadow=true; bx.add(box);
+    const tape=new THREE.Mesh(new THREE.BoxGeometry(0.62,0.02,0.12),L(0xe9d3a6,0.1)); tape.position.y=0.235; bx.add(tape);
+    const tape2=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.46,0.02),L(0xe9d3a6,0.1)); tape2.position.z=0.255; bx.add(tape2);
+    const lbl=new THREE.Mesh(new THREE.BoxGeometry(0.18,0.12,0.01),L(0xffffff,0.1)); lbl.position.set(0.17,-0.08,0.255); bx.add(lbl);
+    bx.rotation.x=0.25; e.add(bx); spin.push(bx);
+  }
+  if(s.id==='service'){ // 對話泡泡
+    const bb=new THREE.Group();
+    const b=new THREE.Mesh(new THREE.SphereGeometry(0.34,20,14),L(0xffffff,0.12)); b.scale.set(1.35,1,0.55); bb.add(b);
+    const tail=new THREE.Mesh(new THREE.ConeGeometry(0.1,0.24,8),L(0xffffff,0.12)); tail.position.set(-0.28,-0.3,0); tail.rotation.z=0.6; bb.add(tail);
+    [-0.17,0,0.17].forEach((x,i)=>{ const d=new THREE.Mesh(new THREE.SphereGeometry(0.055,10,8),L(0x2b91ad,0.2)); d.position.set(x,0,0.18); bb.add(d);
+      anim.push(t=>{ d.position.y=Math.max(0,Math.sin(t*5-i*0.9))*0.06; }); });
+    e.add(bb); spin.push(bb);
+  }
+  if(s.id==='staff'){ // 時鐘
+    const ck=new THREE.Group();
+    const face=new THREE.Mesh(new THREE.CylinderGeometry(0.36,0.36,0.08,32),[L(0x2b91ad,0.12),L(0xffffff,0.08),L(0xffffff,0.08)]); face.rotation.x=Math.PI/2; ck.add(face);
+    for(let i=0;i<12;i++){ const tk=new THREE.Mesh(new THREE.BoxGeometry(0.03,i%3?0.04:0.08,0.02),L(0x3d4858,0)); const a=i/12*Math.PI*2; tk.position.set(Math.sin(a)*0.28,Math.cos(a)*0.28,0.05); tk.rotation.z=-a; ck.add(tk); }
+    const hh=new THREE.Mesh(new THREE.BoxGeometry(0.04,0.16,0.02),L(0x3d4858,0)), mh=new THREE.Mesh(new THREE.BoxGeometry(0.03,0.24,0.02),L(0x3d4858,0));
+    const hp=new THREE.Group(), mp=new THREE.Group(); hh.position.y=0.08; mh.position.y=0.12; hp.add(hh); mp.add(mh); hp.position.z=0.06; mp.position.z=0.065; ck.add(hp,mp);
+    anim.push(t=>{ mp.rotation.z=-t*0.8; hp.rotation.z=-t*0.8/12-1; });
+    e.add(ck); spin.push(ck);
+  }
+  if(s.id==='ops'){ // 齒輪
+    const gr=new THREE.Group();
+    gr.add(new THREE.Mesh(new THREE.CylinderGeometry(0.26,0.26,0.12,24),L(0x8c99a6,0.1)));
+    for(let i=0;i<8;i++){ const tth=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.12,0.14),L(0x8c99a6,0.1)); const a=i/8*Math.PI*2; tth.position.set(Math.cos(a)*0.3,0,Math.sin(a)*0.3); tth.rotation.y=-a; gr.add(tth); }
+    const hole=new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.09,0.13,16),L(0x4a5560,0)); gr.add(hole);
+    gr.rotation.x=Math.PI/2; const holder=new THREE.Group(); holder.add(gr); e.add(holder); spin.push(holder);
+    anim.push(t=>{ gr.rotation.y=offline?0:t*0.9; });
+  }
+  e.traverse(o=>{ if(o.isMesh) o.castShadow=!o.material.isMeshBasicMaterial; });
+  g.add(e); s.emblem=e;
+  anim.push(t=>{ e.position.y=h+Math.sin(t*1.6+g.userData.phase)*0.08; spin.forEach(o=>{ o.rotation.y=Math.sin(t*0.9+g.userData.phase)*0.6; }); if(s.id==='sales') spin[0].rotation.y=t*1.4; });
+}
+
+/* ---------- 溫馨小屋風格：共用工具 ---------- */
+var KIT;
+function kit(){ if(KIT) return KIT;
+  const E=(c,e,i)=>new THREE.MeshToonMaterial({color:c,gradientMap:grad,emissive:e,emissiveIntensity:i});
+  KIT={wall:T(0xefe4cf),timber:T(0x6b4128),door:T(0xc8743a),doorDk:T(0x9c5428),plank:T(0xd39a5c),plankDk:T(0xa8703f),deck:T(0x9a6236),
+    stone:T(0xcfc6b4),stoneDk:T(0xa39a88),path:T(0xe6b874),pathIn:T(0xb57a3a),leafA:T(0x6cb83a),leafB:T(0x93cf45),leafC:T(0x4e9a30),
+    trunk:T(0x8a5a34),apple:T(0xe8443a),appleY:T(0xf5c542),soil:T(0x6a4630),red:T(0xd8402f),cream:T(0xfff6e6),metal:T(0x3c3c44),
+    gold:T(0xf2b632),kraft:T(0xc8935a),tape:T(0xe9d3a6),hay:T(0xe8c35a),hayDk:T(0xc9a03e),bronze:T(0x9a6a2a),slate:T(0x4a5563),
+    glass:E(0xfff0b0,0xffd36b,0.6),win:E(0xffe7a6,0xffc95a,0.35),smoke:new THREE.MeshToonMaterial({color:0xffffff,gradientMap:grad,transparent:true,opacity:0.7})};
+  return KIT; }
+function textTex(txt,bg,fg,w=256,h=96,font='bold 56px "Noto Sans TC", Arial, sans-serif'){
+  const c=document.createElement('canvas'); c.width=w; c.height=h; const x=c.getContext('2d');
+  x.fillStyle=bg; x.fillRect(0,0,w,h); x.fillStyle=fg; x.font=font; x.textAlign='center'; x.textBaseline='middle'; x.fillText(txt,w/2,h/2+3);
+  const t=new THREE.CanvasTexture(c); t.anisotropy=4; return t; }
+function stripeTex(a,b,n=8){ const c=document.createElement('canvas'); c.width=n*8; c.height=4; const x=c.getContext('2d');
+  for(let i=0;i<n;i++){ x.fillStyle=i%2?b:a; x.fillRect(i*8,0,8,4); } const t=new THREE.CanvasTexture(c); t.magFilter=THREE.NearestFilter; return t; }
+function puff(g,cx,cy,cz,R,pal,n=14,seed=1){ for(let i=0;i<n;i++){ const a=i*2.399+seed, u=((i*0.618+seed*0.37)%1)*2-1, rr=R*(0.55+0.45*Math.sqrt(1-u*u));
+  const r2=R*(0.42+0.18*((i*37+seed*11)%10)/10); add(g,S(r2,12,10),pal[i%pal.length],cx+Math.cos(a)*rr*0.75,cy+u*R*0.55,cz+Math.sin(a)*rr*0.75); } }
+function cozyTree(g,x,z,sc=1,fruit=false,seed=1){ const k=kit();
+  add(g,C(0.08*sc,0.12*sc,0.9*sc,10),k.trunk,x,0.3+0.45*sc,z);
+  puff(g,x,0.3+1.25*sc,z,0.45*sc,[k.leafA,k.leafB,k.leafC],12,seed); add(g,S(0.36*sc,14,12),k.leafA,x,0.3+1.42*sc,z);
+  if(fruit) [[0.3,1.3,0.2],[-0.25,1.15,0.25],[0.1,1.55,-0.3]].forEach(([dx,dy,dz],i)=>add(g,S(0.07*sc,10,8),i%2?k.appleY:k.apple,x+dx*sc,0.3+dy*sc,z+dz*sc)); }
+function bush(g,x,z,R=0.42,seed=3){ const k=kit(); puff(g,x,0.3+R*0.7,z,R,[k.leafB,k.leafA,k.leafC],11,seed); add(g,S(R*0.8,14,12),k.leafB,x,0.3+R*1.1,z); }
+function stones(g,pts){ const k=kit(); pts.forEach(([x,z])=>{ add(g,C(0.18,0.2,0.06,12),k.path,x,0.32,z); add(g,C(0.11,0.11,0.02,10),k.pathIn,x,0.36,z,{cast:false}); }); }
+function flowerBox(g,x,z,ry=0,cols){ const k=kit(), fb=new THREE.Group(); fb.position.set(x,0,z); fb.rotation.y=ry;
+  add(fb,B(0.56,0.2,0.26),k.plankDk,0,0.4,0); add(fb,B(0.5,0.02,0.2),k.soil,0,0.5,0,{cast:false});
+  (cols||[k.red,k.appleY,k.red]).forEach((cm,i)=>{ const fx=-0.17+i*0.17; add(fb,C(0.012,0.012,0.2,4),k.leafC,fx,0.6,0,{cast:false}); add(fb,S(0.055,10,8),cm,fx,0.72,0).scale.set(1,1.3,1); add(fb,S(0.045,8,6),k.leafA,fx+0.05,0.56,0,{cast:false}).scale.set(0.6,1.4,0.4); });
+  g.add(fb); }
+function mushrooms(g,x,z){ const k=kit(); [[0,0,1],[0.14,0.1,0.7]].forEach(([dx,dz,sc])=>{ add(g,C(0.035*sc,0.045*sc,0.12*sc,8),k.cream,x+dx,0.36,z+dz);
+  add(g,new THREE.SphereGeometry(0.1*sc,12,8,0,Math.PI*2,0,Math.PI/2),k.red,x+dx,0.41,z+dz);
+  [[0.04,0.05],[-0.05,0.03],[0,-0.06]].forEach(([a,b])=>add(g,S(0.017*sc,6,5),k.cream,x+dx+a*sc,0.47,z+dz+b*sc,{cast:false})); }); }
+function barrel(g,x,y,z,sprout=true){ const k=kit(); add(g,C(0.19,0.17,0.42,14),k.deck,x,y+0.21,z);
+  [0.06,0.36].forEach(d=>add(g,C(0.2,0.2,0.04,14),k.metal,x,y+d,z,{cast:false})); add(g,C(0.17,0.17,0.02,14),k.soil,x,y+0.43,z,{cast:false});
+  if(sprout){ add(g,S(0.07,8,6),k.leafA,x-0.06,y+0.52,z).scale.set(1.2,0.5,0.8); add(g,S(0.07,8,6),k.leafA,x+0.06,y+0.52,z).scale.set(1.2,0.5,0.8); } }
+function crate(g,x,y,z,sz=0.36,ry=0){ const k=kit(); add(g,B(sz,sz,sz),k.plankDk,x,y+sz/2,z,{ry}); [0.25,0.75].forEach(f=>add(g,B(sz+0.02,0.035,sz+0.02),k.plank,x,y+sz*f,z,{ry,cast:false})); }
+function hangLamp(g,x,y,z){ const k=kit(); add(g,C(0.01,0.01,0.14,4),k.metal,x,y-0.07,z,{cast:false}); add(g,new THREE.ConeGeometry(0.1,0.08,10),k.metal,x,y-0.16,z);
+  const l=add(g,S(0.1,14,10),k.glass.clone(),x,y-0.27,z,{cast:false}); anim.push(t=>{ l.material.emissiveIntensity=0.55+0.2*Math.sin(t*2+x*3); }); return l; }
+function lampPost(g,x,z){ const k=kit(); add(g,C(0.035,0.045,1.0,8),k.metal,x,0.8,z); add(g,B(0.3,0.04,0.04),k.metal,x+0.12,1.28,z,{cast:false}); hangLamp(g,x+0.24,1.27,z); }
+function frontWin(g,x,y,z,w=0.36,h=0.3){ const k=kit(); add(g,B(w+0.08,h+0.08,0.05),k.timber,x,y,z); add(g,B(w,h,0.06),k.win,x,y,z+0.01,{cast:false}); add(g,B(0.035,h,0.07),k.timber,x,y,z+0.02,{cast:false}); }
+function sideWin(g,x,y,z,w=0.36,h=0.3){ const k=kit(); add(g,B(0.05,h+0.08,w+0.08),k.timber,x,y,z); add(g,B(0.06,h,w),k.win,x+0.01,y,z,{cast:false}); add(g,B(0.07,h,0.035),k.timber,x+0.02,y,z,{cast:false}); }
+function door(g,x,base,z,w=0.42,h=0.7,mat){ const k=kit(); add(g,B(w+0.08,h+0.06,0.05),k.doorDk,x,base+h/2+0.03,z); add(g,B(w,h,0.06),mat||k.door,x,base+h/2,z+0.02);
+  [0.52,-0.52].forEach(rz=>add(g,B(0.05,h*1.08,0.02),k.doorDk,x,base+h/2,z+0.055,{rz:rz*(h/w)*0.55,cast:false})); add(g,S(0.028,8,6),k.metal,x+w*0.36,base+h*0.45,z+0.07,{cast:false}); }
+// 木框牆面小屋：正面朝 +z、側面朝 +x
+function house(g,o){ const k=kit(); const {x,z,w,h,d,base}=o, fz=z+d/2, sx=x+w/2, y=base+h/2;
+  add(g,B(w,h,d),o.wall||k.wall,x,y,z);
+  if(o.timber!==false){ const tm=o.timberMat||k.timber;
+    [x-w/2+0.04,x+w/2-0.04].concat(o.mid?[x+o.mid]:[]).forEach(px=>add(g,B(0.08,h,0.04),tm,px,y,fz+0.02,{cast:false}));
+    [base+0.05,base+h-0.04].concat(o.band?[base+h*0.5]:[]).forEach(py=>add(g,B(w+0.02,0.07,0.04),tm,x,py,fz+0.02,{cast:false}));
+    [z-d/2+0.04,z+d/2-0.04].forEach(pz=>add(g,B(0.04,h,0.08),tm,sx+0.02,y,pz,{cast:false}));
+    [base+0.05,base+h-0.04].forEach(py=>add(g,B(0.04,0.07,d+0.02),tm,sx+0.02,py,z,{cast:false})); }
+  return {fz,sx,top:base+h}; }
+// 瓦片山形屋頂（屋脊沿 x 軸）
+function gableRoof(g,cx,cz,w,d,y0,pitch,tm,dm,gm){ const k=kit(), ov=0.18, run=d/2+ov, L=run/Math.cos(pitch), t=Math.tan(pitch);
+  const ridge=y0+(d/2)*t+ov*t*0.6+0.05, W=w+0.32, n=Math.max(5,Math.round(W/0.17));
+  [1,-1].forEach(side=>{ const rg=new THREE.Group(); rg.position.set(cx,ridge,cz); rg.rotation.x=side*pitch;
+    add(rg,B(W,0.05,L),dm,0,-0.06,side*L/2);
+    for(let i=0;i<n;i++) add(rg,C(0.085,0.085,L,10),tm,-W/2+0.085+i*((W-0.17)/(n-1)),0,side*L/2,{rx:Math.PI/2});
+    [0.33,0.66].forEach(f=>add(rg,B(W+0.02,0.03,0.04),dm,0,0.07,side*L*f,{cast:false}));
+    add(rg,B(W+0.06,0.07,0.06),k.timber,0,-0.03,side*(L+0.02)); g.add(rg); });
+  add(g,C(0.09,0.09,W+0.04,10),dm,cx,ridge+0.02,cz,{rz:Math.PI/2});
+  const edge=ridge-(d/2)*t-y0-0.06, apex=ridge-y0-0.04;
+  const sh=new THREE.Shape(); sh.moveTo(-d/2,0); sh.lineTo(d/2,0); sh.lineTo(d/2,Math.max(0.02,edge)); sh.lineTo(0,apex); sh.lineTo(-d/2,Math.max(0.02,edge)); sh.closePath();
+  const gg=new THREE.ExtrudeGeometry(sh,{depth:0.05,bevelEnabled:false});
+  [cx+w/2-0.05,cx-w/2].forEach(px=>add(g,gg,gm||k.wall,px,y0,cz,{ry:Math.PI/2}));
+  return ridge; }
+
+function flowerPotSmall(g,x,y,z){ const k=kit(); add(g,C(0.04,0.03,0.06,8),k.door,x,y+0.03,z,{cast:false}); add(g,S(0.05,8,6),k.leafA,x,y+0.09,z,{cast:false}); add(g,S(0.025,6,5),k.red,x+0.02,y+0.12,z+0.01,{cast:false}); }
+var COINPILE;
+function updateCoinPile(){ const P=COINPILE; if(!P) return; const f=Math.min(1,D.today/D.target), n=Math.round(f*P.coins.length);
+  P.coins.forEach((c,i)=>c.visible=i<n); P.n=n; P.done=f>=1;
+  P.prog.geometry.dispose(); P.prog.geometry=new THREE.RingGeometry(0.27,0.33,40,1,Math.PI/2,-Math.max(0.01,f*Math.PI*2)); }
+function buildIsland(g,s){
+  const k=kit();
+  if(s.id==='sales'){ buildCozyShop(g); return; }
+
+  if(s.id==='hub'){ // 市政廳主建築＋鐘塔
+    const wallH=T(0xf3ead6), tileR=T(0xb94a2c), tileD=T(0x8c3420), white=T(0xfbf8f1), teal=T(0x2b91ad);
+    add(g,B(2.7,0.2,1.75),k.stone,0,0.4,-0.6);
+    add(g,B(1.3,0.13,0.26),k.stone,0,0.365,0.4); add(g,B(1.3,0.07,0.22),k.stoneDk,0,0.335,0.62);
+    const hs=house(g,{x:0,z:-0.85,w:2.35,h:1.05,d:1.0,base:0.5,wall:wallH,band:true});
+    [-0.95,-0.62,0.62,0.95].forEach(px=>{ frontWin(g,px,0.82,hs.fz,0.22,0.26); frontWin(g,px,1.27,hs.fz,0.22,0.22); });
+    sideWin(g,hs.sx,0.82,-0.85,0.28,0.26); sideWin(g,hs.sx,1.27,-0.85,0.28,0.22);
+    gableRoof(g,0,-0.85,2.35,1.0,1.55,0.55,tileR,tileD,wallH);
+    // 門廊：四根白柱＋三角山牆
+    [-0.5,-0.17,0.17,0.5].forEach(px=>{ add(g,C(0.065,0.075,0.92,12),white,px,0.96,0.02); add(g,B(0.17,0.06,0.17),k.stone,px,0.53,0.02,{cast:false}); add(g,B(0.17,0.06,0.17),white,px,1.44,0.02,{cast:false}); });
+    add(g,B(1.32,0.08,0.5),white,0,1.5,-0.11);
+    const tri=new THREE.Shape(); tri.moveTo(-0.68,0); tri.lineTo(0.68,0); tri.lineTo(0,0.38); tri.closePath();
+    add(g,new THREE.ExtrudeGeometry(tri,{depth:0.1,bevelEnabled:false}),white,0,1.54,0.04);
+    add(g,new THREE.ExtrudeGeometry(tri,{depth:0.04,bevelEnabled:false}),tileR,0,1.6,0.125,{cast:false}).scale.set(0.8,0.7,1);
+    add(g,C(0.07,0.07,0.03,16),k.gold,0,1.68,0.185,{rx:Math.PI/2,cast:false});
+    door(g,0,0.5,hs.fz,0.5,0.78,teal);
+    // 中央鐘塔
+    house(g,{x:0,z:-0.85,w:0.74,h:1.25,d:0.74,base:1.6,wall:wallH});
+    const cz=-0.85+0.37+0.03;
+    add(g,C(0.27,0.27,0.05,24),k.timber,0,2.5,cz,{rx:Math.PI/2}); add(g,C(0.23,0.23,0.06,24),white,0,2.5,cz+0.01,{rx:Math.PI/2,cast:false});
+    for(let i=0;i<12;i++){ const a=i/12*Math.PI*2; add(g,B(0.02,i%3?0.03:0.06,0.02),k.metal,Math.sin(a)*0.18,2.5+Math.cos(a)*0.18,cz+0.05,{rz:-a,cast:false}); }
+    const hh=new THREE.Group(), mh=new THREE.Group(); hh.position.set(0,2.5,cz+0.06); mh.position.set(0,2.5,cz+0.065);
+    add(hh,B(0.03,0.11,0.01),k.metal,0,0.055,0,{cast:false}); add(mh,B(0.02,0.17,0.01),k.metal,0,0.085,0,{cast:false}); g.add(hh,mh);
+    anim.push(()=>{ const d=new Date(), mi=d.getMinutes()+d.getSeconds()/60, hr=(d.getHours()%12)+mi/60; mh.rotation.z=-mi/60*Math.PI*2; hh.rotation.z=-hr/12*Math.PI*2; });
+    frontWin(g,0,2.05,cz-0.02,0.2,0.24);
+    add(g,new THREE.ConeGeometry(0.62,0.75,4),tileR,0,3.22,-0.85,{ry:Math.PI/4}); add(g,B(0.84,0.06,0.84),tileD,0,2.87,-0.85,{cast:false});
+    add(g,S(0.08,10,8),k.gold,0,3.62,-0.85);
+    // 前廣場：噴水池、旗桿、路燈
+    add(g,C(0.46,0.5,0.18,20),k.stone,0,0.39,1.25); add(g,C(0.4,0.4,0.03,20),T(0x7fc6e8),0,0.47,1.25,{cast:false});
+    add(g,C(0.06,0.08,0.38,10),k.stone,0,0.66,1.25); add(g,C(0.16,0.1,0.06,14),k.stone,0,0.86,1.25);
+    const drops=[0,1,2,3,4,5].map(i=>add(g,S(0.03,6,5),T(0xa8dcf5),0,0.9,1.25,{cast:false}));
+    anim.push(t=>drops.forEach((d,i)=>{ const u=(t*0.8+i/6)%1, a=i/6*Math.PI*2; d.position.set(Math.cos(a)*u*0.32,0.9+Math.sin(u*Math.PI)*0.22-u*0.35,1.25+Math.sin(a)*u*0.32); }));
+    [[-1.1,0x2b91ad],[1.1,0xffc53d]].forEach(([px,c])=>{ add(g,C(0.025,0.03,1.5,6),k.metal,px,1.05,0.55); const fl=add(g,B(0.34,0.2,0.02),T(c),px+0.18,1.66,0.55,{cast:false});
+      anim.push(t=>{ fl.rotation.y=Math.sin(t*2.5+px)*0.35; }); });
+    lampPost(g,1.65,1.1); lampPost(g,-1.8,1.0);
+    flowerBox(g,-0.75,1.3,0.2); flowerBox(g,0.75,1.3,-0.2,[k.appleY,k.red,k.appleY]);
+    cozyTree(g,-1.95,-0.95,1.05,true,2); cozyTree(g,1.95,-0.35,0.9,false,5);
+    bush(g,-1.55,0.5,0.32,7); bush(g,1.5,0.45,0.3,9); stones(g,[[0,0.9],[0,1.75],[0.0,2.1]].slice(0,2));
+    return; }
+
+  if(s.id==='lamp'){ // 台灣廟宇
+    const red=T(0xb8352a), redD=T(0x8f2a20), tile=T(0xd9622b), tileD=T(0xa9461c), gold=k.gold, jade=T(0x2f9a7a), blue=T(0x3a6fb0);
+    add(g,B(2.25,0.22,1.6),k.stone,-0.1,0.41,-0.5);
+    for(let i=0;i<7;i++) add(g,B(0.06,0.18,0.06),k.stoneDk,-1.1+i*0.33,0.61,0.27,{cast:false});
+    add(g,B(2.1,0.05,0.05),k.stoneDk,-0.1,0.69,0.27,{cast:false});
+    add(g,B(0.62,0.14,0.28),k.stone,-0.1,0.37,0.42); add(g,B(0.62,0.07,0.22),k.stoneDk,-0.1,0.335,0.62);
+    // 正殿
+    add(g,B(1.6,0.82,0.95),red,-0.1,0.93,-0.65); add(g,B(1.62,0.18,0.97),k.stoneDk,-0.1,0.61,-0.65,{cast:false});
+    add(g,B(1.62,0.07,0.97),gold,-0.1,1.3,-0.65,{cast:false});
+    [-0.82,-0.36,0.16,0.62].forEach(px=>{ add(g,C(0.055,0.06,0.86,12),red,px,0.95,0.1); add(g,C(0.09,0.09,0.08,12),k.stone,px,0.56,0.1,{cast:false}); add(g,C(0.075,0.075,0.05,12),gold,px,1.36,0.1,{cast:false}); });
+    add(g,B(1.75,0.08,0.1),redD,-0.1,1.41,0.1);
+    // 三川門＋門釘
+    const fz=-0.175;
+    [[-0.1,0.44,0.64,3,4],[-0.62,0.28,0.5,2,3],[0.42,0.28,0.5,2,3]].forEach(([dx,w,h,cols,rows])=>{
+      add(g,B(w+0.08,h+0.06,0.04),k.timber,dx,0.52+h/2+0.03,fz+0.02); add(g,B(w,h,0.05),redD,dx,0.52+h/2,fz+0.04);
+      add(g,B(0.015,h,0.06),k.timber,dx,0.52+h/2,fz+0.05,{cast:false});
+      for(let r=0;r<rows;r++) for(let c=0;c<cols*2;c++){ const px=dx-w/2+w*(c+0.5)/(cols*2); add(g,S(0.016,6,5),gold,px,0.52+h*(r+0.6)/(rows+0.4),fz+0.075,{cast:false}); } });
+    add(g,B(0.56,0.17,0.04),new THREE.MeshToonMaterial({map:textTex('點燈殿','#1f2f5a','#f2c14e'),gradientMap:grad}),-0.1,1.22,fz+0.06,{cast:false});
+    // 重簷屋頂：下層
+    const r1=gableRoof(g,-0.1,-0.55,1.95,1.45,1.42,0.42,tile,tileD,red);
+    // 上層（高窗＋屋頂）
+    add(g,B(1.15,0.32,0.7),red,-0.1,r1+0.08,-0.62); add(g,B(1.17,0.06,0.72),gold,-0.1,r1+0.22,-0.62,{cast:false});
+    const r2=gableRoof(g,-0.1,-0.62,1.15,0.7,r1+0.24,0.5,tile,tileD,red);
+    // 燕尾脊
+    [[r1,1.95/2+0.2,0.7],[r2,1.15/2+0.2,1]].forEach(([ry,hw,sc])=>{ [-1,1].forEach(sd=>{ [-1,1].forEach(sp=>{
+      const tail=add(g,new THREE.ConeGeometry(0.045*sc,0.42*sc,8),tileD,-0.1+sd*(hw+0.08*sc),ry+0.14*sc,(ry===r1?-0.55:-0.62)+sp*0.06*sc);
+      tail.rotation.set(sp*0.35,0,-sd*0.95); }); }); });
+    // 屋脊剪黏：雙龍搶珠（簡化）
+    [-1,1].forEach(sd=>{ for(let i=0;i<7;i++){ const f=i/6, px=-0.1+sd*(0.12+f*0.4), py=r2+0.12+Math.sin(f*Math.PI*2)*0.05+f*0.04;
+      add(g,S(0.042-f*0.012,8,6),i%2?jade:blue,px,py,-0.62,{cast:false}); }
+      add(g,S(0.05,8,6),k.appleY,-0.1+sd*0.55,r2+0.24,-0.62,{cast:false}); });
+    const pearl=add(g,S(0.08,12,10),new THREE.MeshToonMaterial({color:0xffd666,gradientMap:grad,emissive:0xffb020,emissiveIntensity:0.5}),-0.1,r2+0.2,-0.62);
+    const flame=add(g,new THREE.ConeGeometry(0.06,0.18,8),new THREE.MeshToonMaterial({color:0xff7a45,gradientMap:grad,emissive:0xff5a1f,emissiveIntensity:0.6}),-0.1,r2+0.36,-0.62,{cast:false});
+    anim.push(t=>{ flame.scale.y=1+Math.sin(t*7)*0.15; pearl.rotation.y=t; });
+    // 簷下紅燈籠
+    [-0.75,0.55].forEach(px=>{ add(g,C(0.008,0.008,0.12,4),k.metal,px,1.31,0.1,{cast:false}); add(g,C(0.06,0.06,0.03,10),gold,px,1.24,0.1,{cast:false});
+      const ln=add(g,S(0.12,14,10),new THREE.MeshToonMaterial({color:0xe2392b,gradientMap:grad,emissive:0xd02010,emissiveIntensity:0.35}),px,1.11,0.1); ln.scale.set(1,1.2,1);
+      add(g,C(0.06,0.06,0.03,10),gold,px,0.97,0.1,{cast:false}); add(g,C(0.01,0.02,0.1,6),k.appleY,px,0.9,0.1,{cast:false});
+      anim.push(t=>{ ln.rotation.z=Math.sin(t*1.4+px)*0.08; }); });
+    // 石燈
+    [-0.85,0.65].forEach(px=>{ add(g,B(0.12,0.22,0.12),k.stone,px,0.41,0.62); add(g,B(0.2,0.12,0.2),k.stone,px,0.58,0.62); add(g,B(0.14,0.06,0.14),k.win,px,0.58,0.62,{cast:false}); add(g,new THREE.ConeGeometry(0.17,0.12,4),k.stoneDk,px,0.7,0.62,{ry:Math.PI/4}); });
+    // 天公爐
+    add(g,B(0.42,0.14,0.42),k.stone,1.15,0.37,0.45);
+    add(g,C(0.2,0.15,0.26,16),k.bronze,1.15,0.6,0.45); add(g,C(0.23,0.23,0.04,16),k.bronze,1.15,0.74,0.45,{cast:false});
+    [-1,1].forEach(sd=>add(g,new THREE.TorusGeometry(0.06,0.015,6,12),k.bronze,1.15+sd*0.22,0.7,0.45,{ry:Math.PI/2}));
+    [0,2.1,4.2].forEach(a=>add(g,C(0.03,0.02,0.1,6),k.bronze,1.15+Math.cos(a)*0.13,0.48,0.45+Math.sin(a)*0.13,{cast:false}));
+    for(let i=0;i<3;i++) add(g,C(0.006,0.006,0.16,4),T(0xc0392b),1.12+i*0.03,0.84,0.45,{cast:false});
+    const puffs=[0,1,2].map(()=>add(g,S(0.07,8,6),k.smoke,1.15,0.9,0.45,{cast:false}));
+    anim.push(t=>puffs.forEach((p,i)=>{ const u=((t*0.35+i/3)%1); p.position.set(1.15+Math.sin(u*6+i)*0.06,0.88+u*0.9,0.45); p.scale.setScalar(0.6+u*1.2); p.material.opacity=0.7*(1-u); }));
+    // 六色燈架（對應六種燈別）
+    add(g,B(2.3,0.06,0.06),k.trunk,-0.15,1.18,1.15); [-1.27,0.97].forEach(px=>add(g,B(0.06,0.88,0.06),k.trunk,px,0.74,1.15));
+    s.lanterns=LAMPS.map((L,i)=>{ const px=-1.05+i*0.36; add(g,C(0.008,0.008,0.15,4),k.metal,px,1.08,1.15,{cast:false});
+      const la=add(g,S(0.11,14,10),new THREE.MeshToonMaterial({color:L.hex,gradientMap:grad,emissive:L.hex,emissiveIntensity:0.45}),px,0.93,1.15); la.scale.set(1,1.2,1);
+      add(g,C(0.045,0.045,0.03,8),gold,px,0.79,1.15,{cast:false}); return la; });
+    anim.push(t=>s.lanterns.forEach((l,i)=>{ l.material.emissiveIntensity=0.35+0.25*Math.sin(t*2.2+i); l.rotation.z=Math.sin(t*1.5+i)*0.12; }));
+    cozyTree(g,-1.55,-1.2,0.9,false,4); bush(g,1.5,-0.45,0.34,6);
+    return; }
+
+  if(s.id==='event'){ // 市集帳篷
+    const st=stripeTex('#e24a3b','#fff6e6',10); st.wrapS=THREE.RepeatWrapping;
+    const tm=new THREE.MeshToonMaterial({map:st,gradientMap:grad});
+    add(g,new THREE.CylinderGeometry(0.95,0.95,0.75,20,1,true),tm,-0.45,0.67,-0.6);
+    add(g,new THREE.ConeGeometry(1.08,0.85,20),tm,-0.45,1.47,-0.6);
+    for(let i=0;i<20;i++){ const a=i/20*Math.PI*2; add(g,new THREE.ConeGeometry(0.09,0.14,3),i%2?k.cream:k.red,-0.45+Math.cos(a)*1.02,1.03,-0.6+Math.sin(a)*1.02,{rx:Math.PI,cast:false}); }
+    add(g,C(0.015,0.015,0.4,4),k.metal,-0.45,2.05,-0.6); add(g,B(0.26,0.15,0.02),k.appleY,-0.32,2.16,-0.6,{cast:false});
+    add(g,new THREE.ConeGeometry(0.32,0.62,3),k.doorDk,-0.12,0.61,0.24,{ry:0.6});
+    // 報名桌
+    const tb=new THREE.Group(); tb.position.set(0.75,0,0.35); tb.rotation.y=-0.35;
+    add(tb,B(0.95,0.05,0.42),k.plank,0,0.72,0); [[-0.42,-0.17],[0.42,-0.17],[-0.42,0.17],[0.42,0.17]].forEach(([a,b])=>add(tb,B(0.05,0.42,0.05),k.plankDk,a,0.5,b));
+    add(tb,B(0.95,0.28,0.02),new THREE.MeshToonMaterial({map:textTex('活動報名','#2b91ad','#ffffff'),gradientMap:grad}),0,0.58,0.22,{cast:false});
+    add(tb,B(0.22,0.02,0.28),k.cream,-0.15,0.76,0,{ry:0.2}); add(tb,B(0.2,0.025,0.05),k.metal,-0.15,0.775,-0.1,{ry:0.2,cast:false});
+    add(tb,C(0.012,0.012,0.18,4),k.appleY,0.1,0.76,0.02,{rz:Math.PI/2.2,cast:false}); add(tb,B(0.16,0.12,0.16),k.kraft,0.32,0.8,-0.05);
+    g.add(tb);
+    // 椅子
+    [[-1.2,0.75],[-0.85,1.05],[-0.45,1.3]].forEach(([x,z])=>{ add(g,B(0.24,0.04,0.24),T(0x2b91ad),x,0.5,z); [[-0.1,-0.1],[0.1,-0.1],[-0.1,0.1],[0.1,0.1]].forEach(([a,b])=>add(g,B(0.03,0.2,0.03),k.metal,x+a,0.4,z+b,{cast:false})); add(g,B(0.24,0.24,0.03),T(0x2b91ad),x-0.0,0.64,z-0.11); });
+    // 彩旗
+    const p1=[-1.65,0.15], p2=[0.15,1.55];
+    [p1,p2].forEach(([x,z])=>add(g,C(0.03,0.035,1.15,6),k.trunk,x,0.87,z));
+    for(let i=0;i<=9;i++){ const f=i/9, x=p1[0]+(p2[0]-p1[0])*f, z=p1[1]+(p2[1]-p1[1])*f, y=1.38-Math.sin(f*Math.PI)*0.22;
+      add(g,new THREE.ConeGeometry(0.07,0.15,3),[k.red,T(0x2b91ad),k.appleY,k.leafB][i%4],x,y,z,{rx:Math.PI,cast:false}); }
+    cozyTree(g,1.5,-0.25,0.85,true,3); mushrooms(g,0.55,1.35); stones(g,[[0.2,0.9],[-0.05,1.6]]);
+    return; }
+
+  if(s.id==='stock'){ // 木造倉庫
+    const bw=T(0xa4513a), bwd=T(0x7e3a28);
+    house(g,{x:-0.35,z:-0.5,w:1.5,h:0.95,d:1.15,base:0.3,wall:bw,timberMat:k.cream});
+    for(let i=1;i<9;i++) add(g,B(0.02,0.93,0.02),bwd,-1.1+i*0.17,0.775,0.08,{cast:false});
+    [-0.62,-0.18].forEach(px=>{ add(g,B(0.42,0.72,0.05),bw,px,0.66,0.1); add(g,B(0.05,0.82,0.02),k.cream,px,0.66,0.135,{rz:0.53,cast:false}); add(g,B(0.05,0.82,0.02),k.cream,px,0.66,0.135,{rz:-0.53,cast:false}); });
+    add(g,B(0.92,0.06,0.05),k.cream,-0.4,1.05,0.12,{cast:false});
+    gableRoof(g,-0.35,-0.5,1.5,1.15,1.25,0.72,T(0x6e4a3a),T(0x523428),bw);
+    sideWin(g,0.42,1.12,-0.5,0.3,0.3);
+    crate(g,0.85,0.3,0.45,0.36,0.1); crate(g,0.85,0.66,0.45,0.32,-0.2); crate(g,1.3,0.3,0.7,0.34,0.3);
+    // 棧板＋紙箱
+    add(g,B(0.6,0.08,0.5),k.plank,-1.2,0.34,0.8); [[-1.33,0.72],[-1.07,0.72],[-1.2,0.92]].forEach(([x,z],i)=>{ add(g,B(0.24,0.2,0.2),k.kraft,x,0.48,z); add(g,B(0.25,0.02,0.06),k.tape,x,0.585,z,{cast:false}); });
+    add(g,B(0.24,0.2,0.2),k.kraft,-1.2,0.68,0.8,{ry:0.3});
+    // 推車
+    const cart=new THREE.Group(); cart.position.set(0.15,0,1.05); cart.rotation.y=-0.4;
+    add(cart,B(0.62,0.18,0.38),k.plank,0,0.55,0); [-0.22,0.22].forEach(pz=>add(cart,new THREE.TorusGeometry(0.14,0.035,6,14),k.metal,0,0.44,pz));
+    add(cart,B(0.5,0.04,0.04),k.plankDk,0.5,0.62,-0.12,{rz:-0.3}); add(cart,B(0.5,0.04,0.04),k.plankDk,0.5,0.62,0.12,{rz:-0.3});
+    add(cart,B(0.2,0.15,0.18),k.kraft,-0.12,0.72,0); add(cart,B(0.2,0.12,0.16),k.hay,0.12,0.7,0.02);
+    g.add(cart);
+    // 乾草捆
+    add(g,B(0.5,0.3,0.32),k.hay,-1.55,0.45,-0.35); [-1.65,-1.45].forEach(px=>add(g,B(0.02,0.31,0.33),k.hayDk,px,0.45,-0.35,{cast:false}));
+    barrel(g,1.35,0.3,-0.35,false); cozyTree(g,-1.35,-1.35,0.85,false,8);
+    return; }
+
+  if(s.id==='service'){ // 郵局
+    const wallP=T(0xf3ead6), green=T(0x2f7d4f), greenD=T(0x225c3a), brick=T(0xc4704f);
+    add(g,B(1.75,0.12,1.15),k.stone,-0.3,0.36,-0.55);
+    add(g,B(1.62,1.05,1.0),wallP,-0.3,0.945,-0.58);
+    for(let r=0;r<3;r++) add(g,B(1.64,0.035,1.02),brick,-0.3,0.5+r*0.06,-0.58,{cast:false});
+    [-1.08,0.48].forEach(px=>add(g,B(0.1,1.05,0.06),brick,px,0.945,-0.06,{cast:false}));
+    add(g,B(1.74,0.09,1.1),green,-0.3,1.5,-0.58); add(g,B(1.62,0.2,1.0),wallP,-0.3,1.64,-0.58); add(g,B(1.7,0.06,1.06),greenD,-0.3,1.76,-0.58,{cast:false});
+    // 屋頂招牌
+    const sign=new THREE.MeshToonMaterial({map:textTex('✉ 郵局','#2f7d4f','#ffffff',256,96,'bold 58px "Noto Sans TC", Arial, sans-serif'),gradientMap:grad});
+    add(g,B(0.95,0.32,0.06),sign,-0.3,1.95,-0.12); add(g,B(1.0,0.04,0.08),greenD,-0.3,2.12,-0.12,{cast:false});
+    [-0.7,0.1].forEach(px=>add(g,B(0.04,0.2,0.04),greenD,px,1.84,-0.14,{cast:false}));
+    // 拱門＋拱窗＋條紋遮陽棚
+    const fz=-0.08;
+    add(g,B(0.5,0.62,0.05),greenD,-0.3,0.73,fz+0.01); add(g,B(0.42,0.58,0.06),green,-0.3,0.71,fz+0.02);
+    add(g,new THREE.CylinderGeometry(0.25,0.25,0.05,20,1,false,0,Math.PI),greenD,-0.3,1.04,fz+0.01,{rx:Math.PI/2,rz:Math.PI/2});
+    add(g,new THREE.CylinderGeometry(0.19,0.19,0.06,20,1,false,0,Math.PI),k.win,-0.3,1.04,fz+0.02,{rx:Math.PI/2,rz:Math.PI/2,cast:false});
+    add(g,S(0.025,6,5),k.gold,-0.18,0.7,fz+0.06,{cast:false});
+    const st=stripeTex('#2f7d4f','#fff6e6',6); const aw=new THREE.MeshToonMaterial({map:st,gradientMap:grad});
+    [-0.85,0.25].forEach(px=>{ frontWin(g,px,1.0,fz,0.34,0.36);
+      add(g,new THREE.CylinderGeometry(0.17,0.17,0.05,16,1,false,0,Math.PI),k.timber,px,1.18,fz,{rx:Math.PI/2,rz:Math.PI/2,cast:false});
+      add(g,B(0.48,0.04,0.26),aw,px,1.3,fz+0.12,{rx:0.45}); });
+    sideWin(g,0.52,1.0,-0.58,0.36,0.36);
+    // 綠色、紅色郵筒
+    [[0.78,green,greenD],[1.12,T(0xd8402f),T(0xa82e22)]].forEach(([px,mc,md])=>{
+      add(g,C(0.07,0.09,0.12,10),md,px,0.36,0.45); add(g,B(0.26,0.4,0.24),mc,px,0.62,0.45);
+      add(g,new THREE.CylinderGeometry(0.13,0.13,0.24,14,1,false,0,Math.PI),mc,px,0.82,0.45,{rx:Math.PI/2,rz:Math.PI/2});
+      add(g,B(0.16,0.025,0.03),k.metal,px,0.72,0.575,{cast:false}); add(g,B(0.14,0.08,0.01),k.cream,px,0.56,0.575,{cast:false}); });
+    // 飛進郵筒的信
+    const env=new THREE.MeshToonMaterial({color:0xfffaf0,gradientMap:grad});
+    const letters=[0,1].map(()=>{ const l=new THREE.Group(); add(l,B(0.16,0.1,0.01),env,0,0,0,{cast:false}); add(l,new THREE.ConeGeometry(0.08,0.05,3),T(0xe8d9b8),0,0.02,0.008,{rx:Math.PI/2,rz:Math.PI,cast:false}).scale.set(1,1,0.1); g.add(l); return l; });
+    anim.push(t=>letters.forEach((l,i)=>{ const u=(t*0.25+i*0.5)%1; l.position.set(0.1+u*(0.78-0.1)+Math.sin(u*9)*0.04,1.4-u*0.68+Math.sin(u*Math.PI)*0.35,0.2+u*0.35); l.rotation.set(Math.sin(t*3+i)*0.4,u*2,Math.sin(t*4+i)*0.3); l.visible=u<0.95; }));
+    // 郵差腳踏車
+    const bk=new THREE.Group(); bk.position.set(-1.3,0,0.45); bk.rotation.y=0.6;
+    [-0.27,0.27].forEach(px=>{ add(bk,new THREE.TorusGeometry(0.16,0.025,6,18),k.metal,px,0.46,0); add(bk,S(0.025,6,5),k.metal,px,0.46,0,{cast:false}); });
+    add(bk,B(0.46,0.035,0.035),green,0,0.62,0,{rz:0.05}); add(bk,B(0.035,0.32,0.035),green,-0.14,0.55,0,{rz:-0.35}); add(bk,B(0.035,0.32,0.035),green,0.2,0.55,0,{rz:0.35});
+    add(bk,B(0.13,0.04,0.07),k.timber,-0.18,0.73,0); add(bk,B(0.035,0.2,0.035),k.metal,0.24,0.74,0); add(bk,B(0.03,0.03,0.24),k.metal,0.24,0.84,0);
+    add(bk,B(0.2,0.12,0.2),k.basket||k.plank,0.36,0.66,0); [-0.04,0.04].forEach(dz=>add(bk,B(0.12,0.08,0.01),env,0.36,0.74,dz,{rz:0.2,cast:false}));
+    g.add(bk);
+    // 包裹
+    [[0.25,0.32,0],[0.42,0.22,0.4]].forEach(([x,z,ry])=>{ add(g,B(0.2,0.16,0.18),k.kraft,x,0.5,z,{ry}); add(g,B(0.21,0.02,0.05),k.tape,x,0.585,z,{ry,cast:false}); });
+    hangLamp(g,0.05,1.32,fz+0.15); add(g,B(0.06,0.04,0.18),k.timber,0.05,1.32,fz+0.06,{cast:false});
+    cozyTree(g,-1.5,-1.2,0.95,true,6); bush(g,1.45,-0.4,0.36,4); stones(g,[[-0.3,0.45],[-0.25,0.9],[-0.1,1.35]]);
+    return; }
+
+  if(s.id==='staff'){ // 社區工作坊＋排班看板
+    // 三層樓員工宿舍
+    const dw=T(0xf2dfa0), dx=-0.6, dz=-0.8, W=1.5, Dp=0.85, fh=0.5;
+    const hs=house(g,{x:dx,z:dz,w:W,h:fh*3,d:Dp,base:0.3,wall:dw,band:false});
+    [1,2].forEach(f=>{ add(g,B(W+0.02,0.06,0.04),k.timber,dx,0.3+f*fh,hs.fz+0.02,{cast:false}); add(g,B(0.04,0.06,Dp+0.02),k.timber,hs.sx+0.02,0.3+f*fh,dz,{cast:false}); });
+    gableRoof(g,dx,dz,W,Dp,0.3+fh*3,0.55,T(0x5f9a5a),T(0x456f42),dw);
+    const curtains=[0xf3a6c0,0x8fc3e0,0xffd666,0x93cf45,0xb4c6ea,0xff9f7a];
+    [1,2].forEach(f=>{ [-0.48,0,0.48].forEach((ox,i)=>{ const wy=0.3+f*fh+0.27;
+      frontWin(g,dx+ox,wy,hs.fz,0.26,0.24);
+      add(g,B(0.12,0.22,0.02),T(curtains[(f*3+i)%6]),dx+ox-0.07,wy,hs.fz+0.05,{cast:false});
+      // 小陽台
+      add(g,B(0.38,0.04,0.16),k.plank,dx+ox,wy-0.17,hs.fz+0.08);
+      add(g,B(0.38,0.12,0.015),k.plankDk,dx+ox,wy-0.1,hs.fz+0.155,{cast:false});
+      if((f+i)%2) flowerPotSmall(g,dx+ox+0.12,wy-0.15,hs.fz+0.1); }); });
+    [0.3+0.27,0.3+fh+0.27,0.3+2*fh+0.27].forEach(wy=>[-1.0,-0.6].forEach(oz=>sideWin(g,hs.sx,wy,oz,0.22,0.22)));
+    // 一樓入口＋雨遮＋招牌
+    door(g,dx,0.3,hs.fz,0.42,0.42);
+    frontWin(g,dx-0.48,0.55,hs.fz,0.26,0.22); frontWin(g,dx+0.48,0.55,hs.fz,0.26,0.22);
+    const aw=new THREE.MeshToonMaterial({map:stripeTex('#5f9a5a','#fff6e6',6),gradientMap:grad});
+    add(g,B(0.62,0.04,0.3),aw,dx,0.8,hs.fz+0.14,{rx:0.35});
+    add(g,B(0.6,0.15,0.03),new THREE.MeshToonMaterial({map:textTex('員工宿舍','#456f42','#fff6e6'),gradientMap:grad}),dx,0.93,hs.fz+0.03,{cast:false});
+    // 屋頂水塔
+    add(g,C(0.13,0.13,0.22,12),T(0xd9e2e8),dx+0.45,0.3+fh*3+0.55,dz-0.1); add(g,C(0.14,0.14,0.03,12),T(0x6d7a86),dx+0.45,0.3+fh*3+0.67,dz-0.1,{cast:false});
+    // 排班看板
+    const sb=new THREE.Group(); sb.position.set(0.65,0,-0.75); sb.rotation.y=-0.25;
+    [-0.42,0.42].forEach(px=>add(sb,B(0.06,1.0,0.06),k.trunk,px,0.8,0)); add(sb,B(0.9,0.62,0.05),k.cream,0,1.0,0.02); add(sb,B(0.98,0.08,0.12),k.doorDk,0,1.35,0.02);
+    const cc=[0x7fc6d0,0xf3a6c0,0xffd666,0x93cf45,0xb4c6ea,0xff9f7a];
+    for(let r=0;r<3;r++) for(let c=0;c<4;c++){ if((r*4+c)%5===3) continue; add(sb,B(0.17,0.12,0.02),T(cc[(r*4+c)%6]),-0.3+c*0.2,1.18-r*0.17,0.055,{cast:false}); }
+    g.add(sb);
+    // 走動的人員（數量 = 在班人數）
+    s.people=[]; const shirts=D.roster.map(r=>T(parseInt(r.c.slice(1),16)));
+    for(let i=0;i<D.roster.length;i++){ const p=new THREE.Group(); p.userData={a:i/D.roster.length*Math.PI*2};
+      add(p,C(0.12,0.16,0.3,12),shirts[i],0,0.15,0); add(p,S(0.15,14,12),m.skin,0,0.44,0);
+      add(p,new THREE.SphereGeometry(0.155,14,8,0,Math.PI*2,0,Math.PI/2.2),[k.timber,k.trunk,k.metal,k.doorDk,k.timber][i],0,0.47,0,{cast:false});
+      add(p,S(0.025,6,5),k.metal,0.05,0.46,0.13,{cast:false}); add(p,S(0.025,6,5),k.metal,-0.05,0.46,0.13,{cast:false});
+      { const c=document.createElement('canvas'); c.width=192; c.height=72; const x=c.getContext('2d'); const nm=D.roster[i].name;
+        x.fillStyle='rgba(255,255,255,0.95)'; x.beginPath(); x.roundRect?x.roundRect(4,8,184,56,28):x.rect(4,8,184,56); x.fill();
+        x.fillStyle=D.roster[i].c; x.beginPath(); x.arc(34,36,14,0,Math.PI*2); x.fill();
+        x.fillStyle='#1f1f1f'; x.font='bold 34px "Noto Sans TC", Arial, sans-serif'; x.textBaseline='middle'; x.fillText(nm,58,38);
+        const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthTest:false,transparent:true}));
+        sp.scale.set(0.8,0.3,1); sp.position.y=0.9; sp.renderOrder=5; p.add(sp); }
+      g.add(p); s.people.push(p); }
+    anim.push(t=>s.people.forEach((p,i)=>{ const on=i<D.staff.on; p.visible=on; const a=p.userData.a+t*0.25;
+      p.position.set(0.25+Math.cos(a)*0.85,0.3+Math.abs(Math.sin(t*5+i))*0.05,0.75+Math.sin(a)*0.42); p.rotation.y=-a; }));
+    add(g,B(0.6,0.05,0.2),k.plank,-1.35,0.52,0.45,{ry:1.2}); [[-1.45,0.2],[-1.25,0.7]].forEach(([x,z])=>add(g,B(0.18,0.22,0.05),k.plankDk,x,0.41,z,{ry:1.2}));
+    lampPost(g,1.45,0.35); cozyTree(g,-1.6,-0.15,0.8,false,9); bush(g,1.45,-0.55,0.32,2); mushrooms(g,0.9,1.4);
+    return; }
+
+  if(s.id==='ops'){ // 石造機房
+    add(g,B(1.6,0.12,1.2),k.stoneDk,-0.1,0.36,-0.25);
+    const hs=house(g,{x:-0.15,z:-0.55,w:1.3,h:0.85,d:0.75,base:0.42,wall:T(0xb8b2a6),timber:false});
+    for(let i=0;i<14;i++){ const px=-0.7+((i*37)%11)/10*1.1, py=0.55+((i*53)%7)/7*0.7; add(g,B(0.16,0.08,0.02),T(0x9c968a),px,py,hs.fz+0.01,{cast:false}); }
+    add(g,B(1.36,0.08,0.81),T(0x6d7a86),-0.15,1.31,-0.55);
+    // 屋頂衛星碟
+    const dish=new THREE.Group(); dish.position.set(0.25,1.35,-0.6);
+    add(dish,C(0.04,0.06,0.3,8),k.cream,0,0.15,0);
+    const bowl=add(dish,new THREE.SphereGeometry(0.3,16,10,0,Math.PI*2,0,Math.PI/2.4),T(0xfbfcfd),0,0.42,0,{rx:-0.9}); bowl.material=T(0xfbfcfd); bowl.material.side=THREE.DoubleSide;
+    add(dish,C(0.012,0.012,0.25,4),k.metal,0,0.5,0.1,{rx:0.9,cast:false});
+    g.add(dish); anim.push(t=>{ dish.rotation.y=offline?0:t*0.6; });
+    // 遮雨棚＋三座機櫃（LED 對應 API / DB / LINE / OpenAI）
+    add(g,B(1.5,0.05,0.62),k.plank,-0.15,1.2,0.12,{rx:0.22}); [-0.85,0.55].forEach(px=>add(g,B(0.05,0.8,0.05),k.trunk,px,0.82,0.38));
+    s.leds=[];
+    [-0.55,-0.1,0.35].forEach((x,i)=>{ add(g,B(0.38,0.75,0.36),k.slate,x,0.795,0.1);
+      for(let r=0;r<4;r++){ add(g,B(0.3,0.03,0.02),k.metal,x,0.55+r*0.16,0.29,{cast:false});
+        const led=add(g,S(0.03,8,6),new THREE.MeshBasicMaterial({color:0x3fbf83}),x+0.12,0.57+r*0.16,0.3,{cast:false}); s.leds.push({led,comp:['api','db','line','openai'][(i+r)%4],ph:i*4+r}); } });
+    anim.push(t=>s.leds.forEach(o=>{ const bad=offline||(o.comp==='api'?H.api.err>2:o.comp==='db'?(!H.db.ok||H.db.lat>500||H.db.locked):!H[o.comp].ok);
+      o.led.material.color.setHex(offline?0xb6c0ca:bad?0xf25f5c:0x3fbf83); o.led.visible=offline?true:(Math.sin(t*(bad?10:4)+o.ph*1.7)>-0.6); }));
+    // 電纜線軸
+    add(g,C(0.2,0.2,0.04,14),k.plank,-1.0,0.5,0.75,{rx:Math.PI/2}); add(g,C(0.2,0.2,0.04,14),k.plank,-1.0,0.5,0.55,{rx:Math.PI/2}); add(g,C(0.12,0.12,0.18,12),T(0x2b91ad),-1.0,0.5,0.65,{rx:Math.PI/2});
+    hangLamp(g,0.75,1.18,0.42); bush(g,-1.15,-0.85,0.3,5);
+    return; }
+}
+
+// bridges (wooden planks) hub -> each island
+const bridges={};
+ISL.slice(1).filter(s=>s.id!=='ops').forEach(s=>{
+  const a=new THREE.Vector3(0,0,0), b=new THREE.Vector3(s.pos[0],0,s.pos[2]);
+  const dir=b.clone().sub(a).normalize(); const start=a.clone().add(dir.clone().multiplyScalar(2.3)), end=b.clone().sub(dir.clone().multiplyScalar(s.r*s.sc-0.15));
+  const len=start.distanceTo(end), n=Math.floor(len/0.3), ang=-Math.atan2(dir.z,dir.x);
+  const g=new THREE.Group(); scene.add(g);
+  for(let k=0;k<=n;k++){ const p=start.clone().lerp(end,k/n); const sag=Math.sin(k/n*Math.PI)*0.18;
+    add(g,B(0.2,0.07,0.62),k%2?m.wood:m.cookie2,p.x,0.2-sag,p.z,{ry:ang}); }
+  bridges[s.id]={start,end,g};
+});
+
+// data packets from islands to hub
+const packets=[];
+let role='admin', mode='island';
+const ROLE={admin:null, staff:['sales','lamp','event','stock','service']};
+const visible=id=>!ROLE[role]||ROLE[role].includes(id);
+function sendPacket(id,color){
+  if(!visible('hub')||!visible(id)) return;
+  const br=bridges[id]; if(!br) return;
+  const mesh=new THREE.Mesh(S(0.16,14,12),new THREE.MeshToonMaterial({color,gradientMap:grad,emissive:color,emissiveIntensity:0.3}));
+  mesh.castShadow=true; scene.add(mesh); packets.push({mesh,br,t:0});
+}
+
+// fluffy clouds
+const cloudMat=T(0xffffff,{transparent:true,opacity:0.92});
+const clouds=[];
+for(let c=0;c<6;c++){ const g=new THREE.Group(); [[0,0,0,0.7],[0.6,0.1,0.1,0.5],[-0.6,-0.05,0,0.55],[0.2,0.3,0,0.45]].forEach(([x,y,z,r])=>add(g,S(r,14,10),cloudMat,x,y,z,{cast:false}));
+  g.position.set(-14+c*5.5,-2.8-Math.random()*1.8,-8+Math.random()*16); g.scale.setScalar(0.9+Math.random()*0.6); scene.add(g); clouds.push(g); }
+
+/* ---------- labels ---------- */
+const labelsEl=document.getElementById('labels');
+ISL.forEach(s=>{ const t=document.createElement('div'); t.className='tag'; t.tabIndex=0; t.setAttribute('role','button');
+  t.innerHTML='<div class="n"><span class="dot"></span><span>'+s.name+'</span></div><div class="v"></div>';
+  t.addEventListener('click',()=>select(s.id)); t.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault();select(s.id);} });
+  labelsEl.appendChild(t); s.tag=t; });
+
+/* ---------- interaction ---------- */
+const ray=new THREE.Raycaster(), mouse=new THREE.Vector2(); let downAt=null;
+function hit(e){ const r=renderer.domElement.getBoundingClientRect(); mouse.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1); ray.setFromCamera(mouse,cam); const h=ray.intersectObjects(pick,false).find(x=>visible(x.object.userData.island)); return h?h.object.userData.island:null; }
+renderer.domElement.addEventListener('pointerdown',e=>downAt=[e.clientX,e.clientY]);
+renderer.domElement.addEventListener('pointerup',e=>{ if(downAt&&Math.hypot(e.clientX-downAt[0],e.clientY-downAt[1])<5){ const id=hit(e); if(id) select(id);} downAt=null; });
+renderer.domElement.addEventListener('pointermove',e=>{ if(e.buttons) return; renderer.domElement.classList.toggle('hot',!!hit(e)); });
+const IS_MOBILE=matchMedia('(max-width: 768px)').matches||/Android|iPhone|iPod|Mobile/i.test(navigator.userAgent);
+let selected=IS_MOBILE?'hub':'sales';
+function select(id,t){ if(id!==selected) focusOn(id); if(id!==selected||t){ tab=t||'status'; document.getElementById('detail').dataset.view=''; } selected=id; renderAll();
+  if(matchMedia('(max-width:820px)').matches) document.getElementById('detail').scrollIntoView({behavior:reduce?'auto':'smooth',block:'start'}); }
+
+/* ---------- log ---------- */
+const logEl=document.getElementById('log'); const logs=[];
+const hm=d=>d.toTimeString().slice(0,5);
+function log(st,msg,when){ logs.unshift({st,msg,t:hm(when||new Date()),fresh:!when}); if(logs.length>25) logs.pop(); }
+function renderLog(){ logEl.innerHTML=logs.map((l,i)=>'<li class="'+(i===0&&l.fresh?'new':'')+'"><time>'+l.t+'</time><span class="dot s-'+l.st+'"></span><span class="msg">'+l.msg+'</span></li>').join(''); logs.forEach(l=>l.fresh=false); }
+
+/* ---------- simulation: new ERP records arrive ---------- */
+const COL={sales:0x2b91ad,lamp:0xffcf4d,event:0xc4b5ff,stock:0xd9a46c,service:0x8fdcc4,staff:0x8fcbf0};
+const rnd=a=>a[Math.floor(Math.random()*a.length)];
+function healthTick(){
+  H.api.lat=Math.round(95+Math.random()*60); H.db.backupHrs+=0.4;
+  H.api.err=+(H.api.err>2?(Math.random()<0.3?0.4:H.api.err):(Math.random()<0.04?3.6:0.2+Math.random()*0.4)).toFixed(1);
+  if(H.db.lat>500||H.db.locked){ if(Math.random()<0.35){ H.db.lat=18; H.db.locked=false; log('run','DB 回應恢復正常'); } }
+  else { H.db.lat=Math.round(12+Math.random()*14); if(Math.random()<0.04){ H.db.lat=680; log('warn','DB 查詢變慢（680ms）'); } else if(Math.random()<0.03){ H.db.locked=true; log('warn','DB 寫入衝突：database is locked'); } }
+  ['line','openai'].forEach(k=>{ if(!H[k].ok){ if(Math.random()<0.3){ H[k].ok=true; log('run',(k==='line'?'LINE webhook':'OpenAI')+' 恢復連線'); } } else if(Math.random()<0.025){ H[k].ok=false; log('warn',(k==='line'?'LINE webhook 簽章驗證失敗':'OpenAI 呼叫逾時，LINE 營收登記暫停')); } });
+  if(H.db.backupHrs>24&&H.db.backupHrs<24.4) log('warn','已超過 24 小時沒有備份');
+}
+function tick(){
+  if(offline){ renderAll(); return; }
+  lastOk=Date.now(); healthTick();
+  const r=Math.random();
+  if(r<0.38){ const it=rnd(ITEMS), who=rnd(PEOPLE), pay=rnd(PAY), amt=it.price||rnd([300,600,1000,2000]); D.today+=amt; D.month+=amt; D.todayN++; D.monthN++; track(it,1,amt);
+    if(it.stock){ const s=D.stock.find(x=>x.name===it.stock); if(s) s.qty=Math.max(0,s.qty-1); }
+    const open=Math.random()<0.12; if(open) D.open++;
+    log(open?'warn':'run',who+' · '+it.name+' · '+pay+' '+fmt(amt)+(open?'（未結帳）':'')); sendPacket('sales',COL.sales);
+  } else if(r<0.55){ const L=rnd(LAMPS); D.lamps[L.k]++; log('run',rnd(PEOPLE)+' 點了一盞'+L.label); sendPacket('lamp',L.hex);
+  } else if(r<0.7){ if(D.event.reg<D.event.cap){ D.event.reg++; const paid=Math.random()<0.5; if(paid) D.event.paid++;
+      log(paid?'run':'warn',rnd(PEOPLE)+' 報名'+D.event.title+(paid?'（已付款）':'（待付款）')); sendPacket('event',COL.event); }
+  } else if(r<0.8){ if(Math.random()<0.5){ D.service.pending++; log('warn','收到一筆線上課程匯款，待確認'); } else { D.service.week++; log('run','新增客服紀錄：'+rnd(['課程時間詢問','改約時間','點燈流程詢問'])); } sendPacket('service',COL.service);
+  } else if(r<0.9){ const s=rnd(D.stock); const q=1+Math.floor(Math.random()*2); s.qty=Math.max(0,s.qty-q); log(s.qty<s.safe?'alarm':'run',s.name+' 耗用 '+q+' 件，剩 '+s.qty); sendPacket('stock',COL.stock);
+  } else { const before=D.staff.on; D.staff.on=before===2?(Math.random()<0.6?3:1):2; if(D.staff.on!==before){ const r=D.roster[Math.max(before,D.staff.on)-1]; log(D.staff.on<2?'warn':'run',r.name+(D.staff.on>before?(r.cat==='公益'?' 公益服務報到':' 回到崗位'):(r.cat==='公益'?' 公益服務結束':' 暫時離開'))+'，現在 '+D.staff.on+' 人在班'); sendPacket('staff',COL.staff); } }
+  renderAll();
+}
+const FIX={
+  sales:()=>{ log('run','已結清 '+D.open+' 筆未結帳單'); D.open=0; },
+  event:()=>{ log('run','已發送付款提醒，'+(D.event.reg-D.event.paid)+' 位完成付款'); D.event.paid=D.event.reg; },
+  stock:()=>{ const l=lowStock(); l.forEach(s=>s.qty=s.safe*2); log('run','已建立進貨單：'+l.map(s=>s.name).join('、')); },
+  service:()=>{ log('run','已確認 '+D.service.pending+' 筆課程匯款'); D.service.pending=0; },
+  staff:()=>{ D.staff.on=2; log('run','已排入代班：'+onDuty().map(r=>r.name).join('、')); },
+  ops:()=>{ if(H.db.backupHrs>24){ H.db.backupHrs=0; log('run','已手動完成 DB 備份'); } H.db.lat=18; H.db.locked=false; H.api.err=0.3; H.line.ok=H.openai.ok=true; log('run','系統檢查完成，各項服務正常'); },
+};
+const FIXLABEL={sales:'結清未結帳單',event:'發送付款提醒',stock:'建立進貨單',service:'確認匯款',staff:'安排代班',ops:'執行備份並重新檢查'};
+function isStale(){ return offline && (Date.now()-lastOk)/1000>=STALE_SEC; }
+
+/* ---------- panel ---------- */
+const SCOLOR={run:0x52c41a,warn:0xfaad14,alarm:0xff4d4f,hub:0x126a7a,stale:0xbfbfbf};
+function renderAll(){
+  let alarms=0,warns=0; const stale=isStale(); staleShown=stale;
+  ISL.forEach(s=>{ const e=evaluate(s.id); if(stale&&s.id!=='ops') e.st='stale'; s.ev=e;
+    if(s.id!=='ops'){ if(e.st==='alarm') alarms++; if(e.st==='warn') warns++; }
+    s.balloon.material.color.setHex(SCOLOR[e.st]);
+    s.tag.className='tag s-'+e.st+(s.id===selected?' sel':''); s.tag.querySelector('.dot').className='dot s-'+e.st; s.tag.querySelector('.v').textContent=mainMetric(s.id); });
+  document.getElementById('kToday').textContent=NT(D.today);
+  document.getElementById('kTodayN').textContent=D.todayN+' 筆';
+  document.getElementById('kMonth').textContent=NT(D.month);
+  const gp=(v,g)=>Math.min(100,v/g*100), tp=D.today/D.target*100, mp=D.month/D.monthTarget*100;
+  document.getElementById('kTodayG').textContent='目標：'+fmt(D.target); document.getElementById('kTodayBar').style.width=gp(D.today,D.target)+'%'; document.getElementById('kTodayP').textContent=tp.toFixed(1)+'%';
+  document.getElementById('kMonthG').textContent='目標：'+fmt(D.monthTarget); document.getElementById('kMonthBar').style.width=gp(D.month,D.monthTarget)+'%'; document.getElementById('kMonthP').textContent=mp.toFixed(1)+'%';
+  const mc=document.getElementById('kMonthCmp'); mc.textContent='客單價 '+NT(D.today/Math.max(1,D.todayN)); mc.className='';
+  const k=document.getElementById('kTodo'); k.textContent=alarms+warns+' 件'; k.style.color=alarms?'var(--alarm)':warns?'var(--warn)':'var(--ink)';
+  document.getElementById('kTodoS').textContent=stale?'資料過期，暫停判斷':'紅燈 '+alarms+'・黃燈 '+warns;
+  if(stale){ k.textContent='--'; k.style.color='var(--muted)'; }
+  const ops=byId('ops').ev, chip=document.getElementById('sysChip');
+  chip.className='sys s-'+ops.st; document.getElementById('sysTxt').textContent=offline?'API 無回應':{run:'系統正常',warn:'系統注意',alarm:'系統異常'}[ops.st];
+  document.getElementById('banner').hidden=!stale; updateBanner();
+  updateCoinPile();
+  if(mode==='dash') renderDash();
+  renderDetail(); renderLog(); renderMenu();
+}
+function updateBanner(){ const s=Math.floor((Date.now()-lastOk)/1000); document.getElementById('bannerTxt').textContent='已 '+s+' 秒沒有取得新資料，燈號暫停判斷'; }
+/* ---------- 分頁：狀態 / 登記表單 ---------- */
+const TABS={sales:[['status','狀態'],['form','登記營收']],lamp:[['status','狀態'],['form','登記點燈']]};
+const STAFF=['Alex','Bella','Chris'];
+const LAMP_PRICE={BRIGHT:1200,LOVE:1200,MEDICINE_BUDDHA:1200,ENLIGHTENMENT:1200,WEALTH:1200,NUWA:3600};
+let tab='status';
+function headHTML(s,e){ const stName={run:'正常',warn:'注意',alarm:'需處理',hub:'彙總中心',stale:'資料過期'}[e.st];
+  return (IS_MOBILE&&s.id!=='hub'?'<button type="button" class="btn2 mback" onclick="window.__toHub&&window.__toHub()">← 回數據總覽</button>':'')+'<div class="eyebrow">小島詳情</div><div class="detail-h"><span class="dot s-'+e.st+'"></span><h2>'+s.name+'</h2><span class="pill s-'+e.st+'">'+stName+'</span></div>'+
+    (TABS[s.id]?'<div class="tabs" role="tablist">'+TABS[s.id].map(([k,l])=>'<button type="button" role="tab" data-tab="'+k+'" aria-selected="'+(tab===k)+'">'+l+'</button>').join('')+'</div>':''); }
+function bindTabs(d){ d.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{ tab=b.dataset.tab; d.dataset.view=''; renderDetail(); }); }
+const opt=(arr,sel)=>arr.map(([v,l])=>'<option value="'+v+'"'+(v===sel?' selected':'')+'>'+l+'</option>').join('');
+function renderForm(s,d){
+  d.dataset.view=s.id+':form';
+  let f='';
+  if(s.id==='sales'){
+    f='<form class="fform" id="theForm" novalidate>'+
+      '<div class="field"><span class="flabel">品項明細</span><div class="lhead"><span>數量</span><span>單價</span><span>小計</span><span></span></div><div id="sLines" class="slines"></div>'+
+      '<button type="button" class="addline" id="sAdd">＋ 新增品項</button></div>'+
+      '<div class="frow"><div class="field"><label for="sCust">客戶</label><input id="sCust" type="text" placeholder="例：王小姐"></div>'+
+      '<div class="field"><label for="sDisc">折扣</label><input id="sDisc" type="number" min="0" value="0" inputmode="numeric"></div></div>'+
+      '<fieldset class="field"><legend>付款方式</legend><div class="radios">'+PAY.map((p,i)=>'<label><input type="radio" name="sPay" id="sPay'+i+'" value="'+p+'"'+(i===0?' checked':'')+'>'+p+'</label>').join('')+'</div></fieldset>'+
+      '<div class="frow"><div class="field"><label for="sSvc">服務人員</label><select id="sSvc">'+opt(STAFF.map(n=>[n,n]),'Alex')+'</select></div>'+
+      '<div class="field"><label for="sSales">銷售人員</label><select id="sSales">'+opt(STAFF.map(n=>[n,n]),'Bella')+'</select></div></div>'+
+      '<label class="check"><input type="checkbox" id="sOpen">先不結帳（存成未結帳單）</label>'+
+      '<div class="field"><label for="sNote">備註</label><textarea id="sNote" placeholder="例：匯款末五碼 12345"></textarea></div>'+
+      '<div class="total"><span>合計</span><b id="sTotal">--</b></div>'+
+      '<div id="formMsg"></div><button class="btn" type="submit">登記這筆營收</button>'+
+      '<p class="hint2">寫入 <code>Sale</code> 與 <code>SaleLine</code>；實體商品會同時產生一筆 <code>InventoryMovement</code>（銷售）。</p></form>';
+  } else {
+    const y=new Date().getFullYear();
+    f='<form class="fform" id="theForm" novalidate>'+
+      '<div class="field"><label for="lName">點燈人姓名</label><input id="lName" type="text" placeholder="例：林小姐" autocomplete="off"></div>'+
+      '<fieldset class="field"><legend>燈別</legend><div class="radios">'+LAMPS.map((L,i)=>'<label><input type="radio" name="lType" id="lType'+i+'" value="'+L.k+'"'+(i===0?' checked':'')+'><span class="dot" style="background:'+L.c+'"></span>'+L.label+'</label>').join('')+'</div></fieldset>'+
+      '<div class="frow"><div class="field"><label for="lYear">點燈年度</label><input id="lYear" type="number" value="'+y+'" inputmode="numeric"></div>'+
+      '<div class="field"><label for="lBirth">生日（選填）</label><input id="lBirth" type="date"></div></div>'+
+      '<div class="field"><label for="lAddr">地址（選填）</label><input id="lAddr" type="text"></div>'+
+      '<div class="total"><span>金額（依燈別價目）</span><b id="lTotal">--</b></div>'+
+      '<div id="formMsg"></div><button class="btn" type="submit">登記點燈</button>'+
+      '<p class="hint2">寫入 <code>LampRecord</code>；金額來自 <code>LampPrice</code>，與 ERP 目前設定相同。</p></form>';
+  }
+  d.innerHTML=headHTML(s,s.ev)+f; bindTabs(d);
+  const form=document.getElementById('theForm'), msg=document.getElementById('formMsg'), $=id=>document.getElementById(id);
+  const say=(ok,t)=>{ msg.innerHTML='<div class="msg '+(ok?'ok':'err')+'">'+t+'</div>'; };
+  if(s.id==='sales'){
+    const types=[...new Set(ITEMS.map(i=>i.type))];
+    const itemOpts='<option value="">選擇品項</option>'+types.map(t=>'<optgroup label="'+t+'">'+ITEMS.map((it,i)=>it.type===t?'<option value="'+i+'">'+it.name+(it.price?'・'+fmt(it.price):'・自訂金額')+'</option>':'').join('')+'</optgroup>').join('');
+    let lineSeq=0;
+    const addLine=(idx)=>{ const n=lineSeq++; const row=document.createElement('div'); row.className='sline';
+      row.innerHTML='<select class="lItem" id="lItem'+n+'" aria-label="品項">'+itemOpts+'</select>'+
+        '<input class="lQty" id="lQty'+n+'" type="number" min="1" value="1" inputmode="numeric" aria-label="數量">'+
+        '<input class="lPrice" id="lPrice'+n+'" type="number" min="0" inputmode="numeric" aria-label="單價" placeholder="單價">'+
+        '<span class="lSub">--</span><button type="button" class="lDel" aria-label="移除這個品項">×</button>';
+      $('sLines').appendChild(row);
+      const sel=row.querySelector('.lItem'), pr=row.querySelector('.lPrice');
+      sel.onchange=()=>{ const it=ITEMS[+sel.value]; if(sel.value===''){ pr.value=''; pr.placeholder='單價'; } else { pr.value=it.price||''; pr.placeholder=it.price?'單價':'請輸入金額'; if(!it.price) pr.focus(); } calc(); };
+      row.querySelector('.lQty').oninput=calc; pr.oninput=calc;
+      row.querySelector('.lDel').onclick=()=>{ if($('sLines').children.length>1){ row.remove(); calc(); } else { sel.value=''; sel.onchange(); } };
+      if(idx!=null){ sel.value=String(idx); sel.onchange(); }
+      return row; };
+    const rows=()=>[...$('sLines').children].map(r=>({r,i:r.querySelector('.lItem').value,q:+r.querySelector('.lQty').value,p:+r.querySelector('.lPrice').value}));
+    const calc=()=>{ let t=0; rows().forEach(x=>{ const sub=x.i===''?0:(x.q||0)*(x.p||0); t+=sub; x.r.querySelector('.lSub').textContent=x.i===''?'--':fmt(sub); });
+      t=Math.max(0,t-(+$('sDisc').value||0)); $('sTotal').textContent=NT(t); return t; };
+    $('sAdd').onclick=()=>{ addLine().querySelector('.lItem').focus(); };
+    $('sDisc').oninput=calc; addLine(ITEMS.findIndex(i=>i.name==='塔羅占卜A')); calc();
+    form.onsubmit=ev=>{ ev.preventDefault();
+      if(offline) return say(false,'連線中斷，這筆還沒送出。請先記在紙上，恢復連線後再登記。');
+      const ls=rows().filter(x=>x.i!=='');
+      if(!ls.length) return say(false,'請至少選一個品項。');
+      for(const x of ls){ const it=ITEMS[+x.i];
+        if(!(x.q>=1)){ x.r.querySelector('.lQty').focus(); return say(false,it.name+' 的數量至少要 1。'); }
+        if(!(x.p>0)){ x.r.querySelector('.lPrice').focus(); return say(false,it.name+(it.price?' 的單價要大於 0。':' 沒有固定價格，請輸入金額。')); } }
+      const total=calc(), who=$('sCust').value.trim()||'現場客人', pay=form.querySelector('input[name="sPay"]:checked').value, open=$('sOpen').checked;
+      D.today+=total; D.month+=total; D.todayN++; D.monthN++; if(open) D.open++; ls.forEach(x=>track(ITEMS[+x.i],x.q,x.q*x.p));
+      ls.forEach(x=>{ const it=ITEMS[+x.i]; if(it.stock){ const st=D.stock.find(y=>y.name===it.stock); if(st) st.qty=Math.max(0,st.qty-x.q); } });
+      const names=ls.map(x=>ITEMS[+x.i].name+(x.q>1?' ×'+x.q:'')).join('、');
+      log(open?'warn':'run',who+' · '+names+' · '+pay+' '+fmt(total)+(open?'（未結帳）':'')+'・服務 '+$('sSvc').value);
+      sendPacket('sales',COL.sales); renderAll();
+      say(true,'已登記：'+who+'・'+ls.length+' 個品項・'+NT(total)+(open?'（未結帳）':''));
+      $('sLines').innerHTML=''; addLine(); $('sCust').value=''; $('sNote').value=''; $('sDisc').value=0; $('sOpen').checked=false; calc(); $('sCust').focus();
+    };
+  } else {
+    const calc=()=>{ const k=form.querySelector('input[name="lType"]:checked').value; $('lTotal').textContent=NT(LAMP_PRICE[k]); return k; };
+    form.querySelectorAll('input[name="lType"]').forEach(r=>r.onchange=calc); calc();
+    form.onsubmit=ev=>{ ev.preventDefault();
+      if(offline) return say(false,'連線中斷，這筆還沒送出。請先記在紙上，恢復連線後再登記。');
+      const name=$('lName').value.trim(); if(!name){ $('lName').focus(); return say(false,'請填寫點燈人姓名。'); }
+      const k=calc(), L=LAMPS.find(x=>x.k===k); D.lamps[k]++;
+      log('run',name+' 點了一盞'+L.label+'（'+$('lYear').value+' 年度）'); sendPacket('lamp',L.hex); renderAll();
+      say(true,'已登記：'+name+'・'+L.label+'・'+NT(LAMP_PRICE[k])); $('lName').value=''; $('lBirth').value=''; $('lAddr').value=''; $('lName').focus();
+    };
+  }
+}
+const TYPECOL={'占卜服務':'#126a7a','課程服務':'#4fb3bf','點燈服務':'#faad14','儀式服務':'#ff7a45','實體商品':'#597ef7','風水服務':'#73d13d','香油捐贈':'#bfbfbf'};
+function goalCard(title,v,goal){ const p=v/goal*100;
+  return '<div class="gcard"><div class="gt">'+title+'</div><div class="gv">'+NT(v)+'</div><div class="gl"><span>目標：'+fmt(goal)+'</span><b>'+p.toFixed(1)+'%</b></div><div class="gbar"><i style="width:'+Math.min(100,p).toFixed(1)+'%"></i></div></div>'; }
+function renderAnalysis(s,d){
+  d.dataset.view='hub:analysis';
+  // 每日營收（本月每天）
+  const vals=D.daily.map((v,i)=>i+1===D.td?D.today:v), top=Math.ceil(Math.max(...vals,D.target)/10000)*10000;
+  const W=320,H=150,pl=26,pr=4,pt=10,pb=18,bw=(W-pl-pr)/D.dim, y=v=>pt+(H-pt-pb)*(1-v/top);
+  let svg='<svg viewBox="0 0 '+W+' '+H+'" class="wk" role="img" aria-label="本月每日營收長條圖">';
+  [0,0.5,1].forEach(f=>{ const v=top*f, yy=y(v).toFixed(1); svg+='<line x1="'+pl+'" x2="'+W+'" y1="'+yy+'" y2="'+yy+'" stroke="var(--line)"/><text x="'+(pl-4)+'" y="'+(+yy+3)+'" text-anchor="end" font-size="8" fill="var(--muted)">'+(v/1000)+'k</text>'; });
+  vals.forEach((v,i)=>{ const x=pl+i*bw+bw*0.15, w=bw*0.7, t=i+1===D.td, fut=i+1>D.td;
+    if(!fut&&v>0) svg+='<rect x="'+x.toFixed(1)+'" y="'+y(v).toFixed(1)+'" width="'+w.toFixed(1)+'" height="'+(H-pb-y(v)).toFixed(1)+'" rx="1.5" fill="'+(t?'var(--accent)':'color-mix(in srgb,var(--accent) 35%,var(--panel))')+'"><title>'+(new Date().getMonth()+1)+'/'+(i+1)+'：'+fmt(v)+'</title></rect>';
+    if((i+1)%5===0||i===0||t) svg+='<text x="'+(x+w/2).toFixed(1)+'" y="'+(H-5)+'" text-anchor="middle" font-size="8" fill="'+(t?'var(--accent)':'var(--muted)')+'">'+(i+1)+'</text>'; });
+  svg+='<line x1="'+pl+'" x2="'+W+'" y1="'+y(D.target).toFixed(1)+'" y2="'+y(D.target).toFixed(1)+'" stroke="#f2a91c" stroke-dasharray="4 3"/></svg>';
+  // 出售類型營收占比（同 ERP：甜甜圈＋排名列，可展開看品項）
+  const CC=["#0b7f95","#2fa6c6","#72c6dd","#f0a35e","#d97745","#7aa874","#8b8ed8","#b07ac4","#e08aa4","#7d95a6"];
+  const types=Object.entries(D.byType).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]), tsum=types.reduce((a,b)=>a+b[1],0);
+  const circ=2*Math.PI*44; let off=0;
+  let pie='<svg class="pie" viewBox="0 0 120 120" role="img" aria-label="出售類型營收占比圓餅圖"><circle cx="60" cy="60" r="44" fill="none" stroke="var(--line)" stroke-width="16"/>';
+  types.forEach(([t,v],i)=>{ const L=Math.max(v/tsum*circ,0.4);
+    pie+='<circle class="seg" data-i="'+i+'" cx="60" cy="60" r="44" fill="none" stroke="'+CC[i%10]+'" stroke-width="16" stroke-dasharray="'+L.toFixed(2)+' '+(circ-L).toFixed(2)+'" stroke-dashoffset="'+(-off).toFixed(2)+'" transform="rotate(-90 60 60)"><title>'+t+' '+(v/tsum*100).toFixed(1)+'%</title></circle>'; off+=L; });
+  pie+='</svg>';
+  const pieWrap='<div class="piewrap">'+pie+'<div class="pc"><b id="pcName">'+types[0][0]+'</b><span id="pcPct">'+(types[0][1]/tsum*100).toFixed(1)+'%</span></div></div><p class="hint2" style="text-align:center">滑鼠移到區塊可查看類型與占比</p>';
+  const row=(rank,color,name,q,v,strong)=>'<div class="srow"><span class="rk2" style="'+(rank?'background:'+color:'')+'">'+(rank||'')+'</span><span class="sm"><b'+(strong?'':' class="n"')+'>'+name+'</b><em>'+q+' 件</em></span><span class="st"><i style="width:'+Math.max(v/tsum*100,1).toFixed(1)+'%;background:'+color+'"></i></span><span class="sv"><b'+(strong?'':' class="n"')+'>'+fmt(v)+'</b><em>'+(v/tsum*100).toFixed(1)+'%</em></span></div>';
+  const list='<div class="tlist">'+types.map(([t,v],i)=>{ const c=CC[i%10], its=Object.entries(D.top).filter(([,o])=>o.type===t).sort((a,b)=>b[1].amt-a[1].amt), q=its.reduce((a,[,o])=>a+o.n,0);
+    return '<details data-i="'+i+'"><summary>'+row(i+1,c,t,q,v,true)+'</summary><div class="kids">'+its.map(([n,o])=>row(0,c,n,o.n,o.amt,false)).join('')+'</div></details>'; }).join('')+'</div>';
+  d.innerHTML=headHTML(s,s.ev)+goalCard('今日營收',D.today,D.target)+goalCard('本月營收累積',D.month,D.monthTarget)+
+    '<div><div class="eyebrow">每日營收<span class="sub2">虛線為每日目標 '+fmt(D.target)+'</span></div>'+svg+'</div>'+
+    '<div><div class="eyebrow" style="margin-bottom:8px">出售類型營收占比</div>'+pieWrap+list+'</div>'+
+    '<p class="hint2">項目與 ERP「數據總覽」相同：今日營收、本月營收累積（含目標達成率）、每日營收、出售類型營收占比。示範資料。</p>';
+  bindTabs(d);
+  const keep=d.dataset.open; if(keep) keep.split(',').forEach(i=>{ const el=d.querySelector('details[data-i="'+i+'"]'); if(el) el.open=true; });
+  const hover=i=>{ document.getElementById('pcName').textContent=types[i][0]; document.getElementById('pcPct').textContent=(types[i][1]/tsum*100).toFixed(1)+'%'; };
+  d.querySelectorAll('.seg').forEach(c=>c.addEventListener('mouseenter',()=>hover(+c.dataset.i)));
+  d.querySelectorAll('details').forEach(el=>{ el.addEventListener('mouseenter',()=>hover(+el.dataset.i)); el.addEventListener('toggle',()=>{ d.dataset.open=[...d.querySelectorAll('details')].filter(x=>x.open).map(x=>x.dataset.i).join(','); }); });
+}
+function renderDetail(){
+  const s=byId(selected), e=s.ev, d=document.getElementById('detail');
+  if(s.id==='hub'){ renderAnalysis(s,d); return; }
+  if(TABS[s.id]&&tab==='form'){ if(d.dataset.view!==s.id+':form') renderForm(s,d); else { const p=d.querySelector('.pill'); const dd=d.querySelector('.detail-h .dot'); const stName={run:'正常',warn:'注意',alarm:'需處理',stale:'資料過期'}[e.st]; if(p){p.className='pill s-'+e.st;p.textContent=stName;} if(dd) dd.className='dot s-'+e.st; } return; }
+  d.dataset.view=s.id+':status';
+  let body='';
+  if(s.id==='ops'){ const ok=(b,bad)=>b?'<span style="color:var(--alarm)">'+bad+'</span>':'正常';
+    body='<dl class="rows"><dt>API</dt><dd>'+(offline?'<span style="color:var(--alarm)">無回應</span>':H.api.lat+' ms')+'</dd>'+
+    '<dt>API 錯誤率（5 分鐘）</dt><dd>'+(offline?'--':ok(H.api.err>2,H.api.err+'%')+(H.api.err>2?'':'・'+H.api.err+'%'))+'</dd>'+
+    '<dt>DB 查詢時間</dt><dd>'+(offline?'--':H.db.locked?'<span style="color:var(--warn)">locked</span>':(H.db.lat>500?'<span style="color:var(--warn)">'+H.db.lat+' ms</span>':H.db.lat+' ms'))+'</dd>'+
+    '<dt>最後備份</dt><dd>'+(H.db.backupHrs>24?'<span style="color:var(--warn)">'+H.db.backupHrs.toFixed(1)+' 小時前</span>':H.db.backupHrs.toFixed(1)+' 小時前')+'</dd>'+
+    '<dt>LINE webhook</dt><dd>'+(offline?'--':ok(!H.line.ok,'失敗'))+'</dd><dt>OpenAI</dt><dd>'+(offline?'--':ok(!H.openai.ok,'失敗'))+'</dd></dl>'+
+    '<div class="note">機房島只給管理者看，跟業務燈號分開。API 掛掉時 /api/health 也回不來，所以「API 無回應」由前端自己判斷：超過 '+STALE_SEC+' 秒（實務建議 2 分鐘）沒拿到資料，其他小島一律變灰，不顯示舊的綠燈。</div>';
+    body='<div><div class="eyebrow" style="margin-bottom:6px">給使用人員看的說明</div><ul class="plain">'+plainIssues().map(p=>'<li><span class="dot s-'+p[0]+'"></span><span>'+p[1]+'</span></li>').join('')+'</ul></div>'+body+
+      '<div><div class="eyebrow" style="margin-bottom:6px">問題回報紀錄（點狀態可切換，示範工程師處理）</div><ul class="tickets">'+TICKETS.map((t,i)=>'<li><span class="tid">'+t.id+'・'+t.time+'・'+t.module+'</span><button class="tst s-'+TST[t.st].c+'" data-i="'+i+'" type="button">'+TST[t.st].l+'</button><span class="ttl">'+t.desc+'</span></li>').join('')+'</ul></div>'; }
+  if(s.id==='hub') body=goalCard('今日營收',D.today,D.target)+goalCard('本月營收累積',D.month,D.monthTarget)+'<p class="hint2">每日營收與出售類型營收占比請看「分析」分頁，項目與 ERP 數據總覽相同。</p>';
+  if(s.id==='sales') body='<div class="goal"><div class="gl"><span>今日目標 '+NT(D.target)+'</span><b>'+Math.round(D.today/D.target*100)+'%</b></div><div class="gbar"><i style="width:'+Math.min(100,D.today/D.target*100).toFixed(1)+'%"></i></div></div><dl class="rows"><dt>今日營收</dt><dd>'+NT(D.today)+'</dd><dt>今日筆數</dt><dd>'+D.todayN+' 筆</dd><dt>客單價</dt><dd>'+NT(D.today/D.todayN)+'</dd><dt>未結帳單</dt><dd>'+D.open+' 筆</dd></dl>';
+  if(s.id==='lamp'){ const mx=Math.max(...Object.values(D.lamps)); body='<div class="minibars">'+LAMPS.map(L=>'<div><span>'+L.label+'</span><i style="--c:'+L.c+';width:'+(D.lamps[L.k]/mx*100)+'%"></i><em>'+D.lamps[L.k]+'</em></div>').join('')+'</div>'; }
+  if(s.id==='event') body='<dl class="rows"><dt>活動</dt><dd>'+D.event.title+'</dd><dt>報名 / 名額</dt><dd>'+D.event.reg+' / '+D.event.cap+'</dd><dt>已付款</dt><dd>'+D.event.paid+' 人</dd><dt>距離活動</dt><dd>'+D.event.daysLeft+' 天</dd></dl>';
+  if(s.id==='stock') body='<dl class="rows">'+D.stock.map(x=>'<dt>'+x.name+'</dt><dd style="color:'+(x.qty<x.safe?'var(--alarm)':'inherit')+'">'+x.qty+' / 安全量 '+x.safe+'</dd>').join('')+'</dl>';
+  if(s.id==='service') body='<dl class="rows"><dt>本週客服紀錄</dt><dd>'+D.service.week+' 筆</dd><dt>課程匯款待確認</dt><dd>'+D.service.pending+' 筆</dd></dl>';
+  if(s.id==='staff'){ const on=onDuty(), off=D.roster.slice(D.staff.on), per=r=>'<li class="pp'+(r.off?' off':'')+'"><span class="av" style="background:'+r.c+'">'+r.name.slice(0,1)+'</span><span class="pn"><b>'+r.name+' <span class="ctag c-'+({'正職':'ft','兼職':'pt','公益':'ch'}[r.cat])+'">'+r.cat+'</span></b><em>'+r.role+'</em></span><span class="ps"><b>'+r.shift+'</b>'+(r.off?'<em>不在崗位</em>':'<span class="ptag'+(r.type==='公益服務'?' ch':'')+'">'+r.type+'</span>')+'</span></li>';
+    body='<div><div class="eyebrow" style="margin-bottom:6px">在班人員（'+on.length+' 人）</div><ul class="people">'+on.map(per).join('')+'</ul></div>'+
+      (off.length?'<div><div class="eyebrow" style="margin-bottom:6px">今日排班・目前不在崗位</div><ul class="people">'+off.map(r=>per(Object.assign({off:true},r))).join('')+'</ul></div>':'')+
+      '<p class="hint2">對應 ERP 排班：正職／兼職依 <code>Employee.role</code> 判斷，現場服務／公益服務是 <code>ShiftType</code>（ONSITE／CHARITY），平常 2 人在班。示範資料，不依實際時間切換。</p>'; }
+  const canFix=FIX[s.id]&&(e.st==='warn'||e.st==='alarm')&&!offline;
+  d.innerHTML=headHTML(s,e)+
+    '<div class="tables">'+s.tables.map(t=>'<code>'+t+'</code>').join('')+'</div>'+
+    (e.st==='stale'?'<div class="note">連線中斷，以下是最後一次取得的資料，燈號暫停判斷。</div>':'')+ body +
+    '<div><div class="eyebrow" style="margin-bottom:6px">燈號規則</div><ul class="rules">'+e.rules.map(([txt,on])=>'<li class="'+(on?'on':'')+'"><span class="dot '+(on?'s-'+(e.st==='hub'?'hub':e.st):'')+'"></span><span>'+txt+'</span></li>').join('')+'</ul></div>'+
+    (FIX[s.id]?'<button class="btn" id="fixBtn" '+(canFix?'':'disabled')+'>'+(canFix?FIXLABEL[s.id]:offline?'連線中斷，暫時無法操作':'目前沒有待處理事項')+'</button>':'');
+  bindTabs(d);
+  d.querySelectorAll('.tst').forEach(btn=>btn.onclick=()=>{ const t=TICKETS[+btn.dataset.i]; t.st=(t.st+1)%3; log(t.st===2?'run':'warn','工單 '+t.id+' → '+TST[t.st].l); renderAll(); });
+  const b=document.getElementById('fixBtn'); if(b&&canFix) b.onclick=()=>{ FIX[s.id](); sendPacket(s.id,0x3fbf83); renderAll(); };
+}
+
+// seed log
+const now=Date.now();
+log('run','早班開店，3 位人員在班',new Date(now-3.2*3600e3));
+log('warn','收到 3 筆線上課程匯款，待確認',new Date(now-1.4*3600e3));
+log('alarm','課程教材包 剩 37 件，低於安全庫存 40',new Date(now-40*60e3));
+log('warn','陳小姐 · 塔羅占卜 · 現金 1,800（未結帳）',new Date(now-12*60e3));
+
+/* ---------- loop ---------- */
+function resize(){ const w=stage.clientWidth,h=stage.clientHeight; if(!w||!h) return; renderer.setSize(w,h,false);
+  const a=w/h, d=Math.max(9,12/a); cam.left=-d*a; cam.right=d*a; cam.top=d; cam.bottom=-d; cam.updateProjectionMatrix(); }
+new ResizeObserver(resize).observe(stage); resize();
+
+const v3=new THREE.Vector3(), clock=new THREE.Clock();
+function frame(){
+  if(IS_MOBILE) return;
+  const t=clock.getElapsedTime();
+  ISL.forEach(s=>{ if(!reduce) s.group.position.y=Math.sin(t*0.9+s.group.userData.phase)*0.13;
+    const al=s.ev&&s.ev.st==='alarm'; s.balGroup.position.y=Math.sin(t*(al?4:1.4)+s.group.userData.phase)*(al?0.12:0.06); s.balGroup.rotation.z=Math.sin(t*1.2+s.group.userData.phase)*0.06; });
+  anim.forEach(f=>f(reduce?0:t));
+  for(let i=packets.length-1;i>=0;i--){ const p=packets[i]; p.t+=reduce?0.02:0.012;
+    const pos=p.br.end.clone().lerp(p.br.start,p.t); pos.y=0.5+Math.sin(p.t*Math.PI)*0.6; p.mesh.position.copy(pos);
+    if(p.t>=1){ scene.remove(p.mesh); p.mesh.geometry.dispose(); p.mesh.material.dispose(); packets.splice(i,1); } }
+  if(!reduce) clouds.forEach((c,k)=>{ c.position.x+=0.005+k*0.0006; if(c.position.x>16) c.position.x=-16; });
+  if(mode==='dash'){ requestAnimationFrame(frame); return; }
+  if(camAnim){ const k=Math.min(1,(performance.now()-camAnim.t0)/700), e=1-Math.pow(1-k,3);
+    controls.target.lerpVectors(camAnim.from,camAnim.to,e); cam.position.copy(controls.target).add(camAnim.off); cam.zoom=camAnim.z0+(camAnim.z1-camAnim.z0)*e; cam.updateProjectionMatrix(); if(k>=1) camAnim=null; }
+  controls.update(); renderer.render(scene,cam);
+  const w=stage.clientWidth,h=stage.clientHeight;
+  ISL.forEach(s=>{ v3.set(s.pos[0],s.group.position.y+s.tagH*s.sc,s.pos[2]).project(cam); s.tag.style.left=((v3.x+1)/2*w)+'px'; s.tag.style.top=((1-v3.y)/2*h)+'px'; });
+  requestAnimationFrame(frame);
+}
+/* ---------- 問題回報 ---------- */
+var TICKETS=[{id:'T-0011',time:'10/24 15:20',module:'庫存',impact:'只是想問問',desc:'愛情籤詩卡的數量跟實際對不起來',st:2,sev:'低'}];
+var TST=[{l:'待處理',c:'alarm'},{l:'處理中',c:'warn'},{l:'已解決',c:'run'}];
+let ticketNo=12;
+function plainIssues(){
+  const out=[];
+  if(offline) out.push(['alarm','系統暫時連不上，畫面上的數字不是最新的。請先把營收記在紙上或 LINE 記事本，恢復後再補登。']);
+  else {
+    if(!H.line.ok||!H.openai.ok) out.push(['warn','用 LINE 傳營收給機器人暫時不能用，請改到後台「營收登記」手動輸入。']);
+    if(H.db.locked||H.db.lat>500) out.push(['warn','存檔可能比較慢或失敗。請等 30 秒再按一次，不要連續重複送出。']);
+    if(H.api.err>2) out.push(['warn','部分頁面可能打不開，先重新整理一次；還是不行就按「回報問題」。']);
+    if(H.db.backupHrs>24) out.push(['warn','資料都還在，只是最近沒有備份。不影響操作，工程師已收到提醒。']);
+  }
+  if(!out.length) out.push(['run','目前一切正常，可以安心作業。']);
+  return out;
+}
+function snapshot(){
+  const now=new Date();
+  return ['時間：'+now.toLocaleString('zh-TW',{hour12:false}),
+    '回報人：櫃台人員（示範帳號）',
+    '目前畫面：'+byId(selected).name,
+    'API：'+(offline?'無回應（前端 '+Math.floor((Date.now()-lastOk)/1000)+' 秒未取得資料）':H.api.lat+'ms，錯誤率 '+H.api.err+'%'),
+    'DB：'+(offline?'未知':(H.db.locked?'locked':H.db.lat+'ms'))+'，最後備份 '+H.db.backupHrs.toFixed(1)+' 小時前',
+    'LINE webhook：'+(offline?'未知':H.line.ok?'正常':'失敗')+'；OpenAI：'+(offline?'未知':H.openai.ok?'正常':'失敗'),
+    '最近事件：'].concat(logs.slice(0,5).map(l=>'  '+l.t+' '+l.msg)).join('\n');
+}
+function aiTriage(module,impact,desc){
+  const lineIssue=!H.line.ok||!H.openai.ok, dbIssue=H.db.locked||H.db.lat>500;
+  if(offline) return {sev:'高',c:'alarm',what:'整個系統目前連不上，不是你操作的問題。',todo:'先用紙本記錄營收與報名，恢復後補登。不用重複重新整理。',eng:'需要。這屬於系統故障，送出後工程師會優先處理。'};
+  if((module==='LINE 登記營收'||/LINE|機器人|line/i.test(desc))&&lineIssue) return {sev:'中',c:'warn',what:'LINE 機器人背後的 '+(!H.openai.ok?'AI 辨識服務（OpenAI）':'LINE 連線')+'目前失敗，所以收不到回覆。',todo:'改到後台「營收登記」手動輸入，資料不會遺失。',eng:'建議送出。工程師需要確認外部服務狀態或金鑰。'};
+  if(dbIssue) return {sev:'中',c:'warn',what:'資料庫目前'+(H.db.locked?'被另一筆寫入暫時鎖住':'回應變慢')+'，存檔時容易失敗。',todo:'等 30 秒再存一次，不要連按。存完到列表確認有沒有重複資料。',eng:impact==='完全無法作業'?'建議送出，持續發生代表需要調整資料庫。':'先不用。10 分鐘內還是一直失敗再送出。'};
+  if(impact==='只是想問問') return {sev:'低',c:'run',what:'系統監控目前都正常，看起來比較像操作方式或資料內容的問題。',todo:'可以先對照 SOP 頁面的步驟。如果是數字對不上，記下品項名稱和時間。',eng:'可以送出，工程師或主管會在一般時段回覆。'};
+  return {sev:impact==='完全無法作業'?'高':'中',c:impact==='完全無法作業'?'alarm':'warn',what:'系統監控目前都正常，可能是單一頁面或特定資料造成的問題。',todo:'請重新整理一次再試；如果還是不行，截圖畫面上的錯誤訊息。',eng:'建議送出，附上的系統快照會幫工程師縮小範圍。'};
+}
+const overlay=document.getElementById('overlay'), fDesc=document.getElementById('fDesc'), aiBox=document.getElementById('aiBox');
+const MOD={sales:'營收登記',lamp:'點燈',event:'活動報名',stock:'庫存',service:'客服／課程收費',staff:'排班'};
+let lastAi=null, lastFocus=null;
+function openReport(){
+  lastFocus=document.activeElement; document.getElementById('fModule').value=MOD[selected]||'其他／不確定';
+  fDesc.value=''; aiBox.innerHTML=''; lastAi=null; document.getElementById('snap').textContent=snapshot();
+  document.getElementById('formView').hidden=false; document.getElementById('doneView').hidden=true;
+  document.getElementById('copyBtn').textContent='複製回報內容'; overlay.hidden=false; fDesc.focus();
+}
+function closeReport(){ overlay.hidden=true; if(lastFocus) lastFocus.focus(); }
+function impactVal(){ return document.querySelector('input[name="fImpact"]:checked').value; }
+document.getElementById('reportBtn').addEventListener('click',openReport);
+document.getElementById('dlgClose').addEventListener('click',closeReport);
+document.getElementById('doneClose').addEventListener('click',closeReport);
+overlay.addEventListener('click',e=>{ if(e.target===overlay) closeReport(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&!overlay.hidden) closeReport(); });
+document.getElementById('askAi').addEventListener('click',()=>{
+  const a=aiTriage(document.getElementById('fModule').value,impactVal(),fDesc.value); lastAi=a;
+  aiBox.innerHTML='<div class="ai"><h3>AI 初步判斷<span class="sev s-'+a.c+'">嚴重度：'+a.sev+'</span></h3>'+
+    '<p><b>可能原因：</b>'+a.what+'</p><p><b>你現在可以：</b>'+a.todo+'</p><p><b>需要工程師嗎：</b>'+a.eng+'</p>'+
+    '<p style="color:var(--muted);font-size:12px">示範版用規則判斷；正式版會把描述和系統快照一起送給 AI 分析。</p></div>';
+});
+document.getElementById('sendEng').addEventListener('click',()=>{
+  const module=document.getElementById('fModule').value, impact=impactVal(), desc=fDesc.value.trim()||'（未填描述）';
+  const a=lastAi||aiTriage(module,impact,desc), id='T-'+String(ticketNo++).padStart(4,'0');
+  const now=new Date(), time=(now.getMonth()+1)+'/'+now.getDate()+' '+hm(now);
+  TICKETS.unshift({id,time,module,impact,desc,st:0,sev:a.sev});
+  const text=['【問題回報】'+id,'功能：'+module,'影響：'+impact,'嚴重度（AI 初判）：'+a.sev,'描述：'+desc,'AI 初判原因：'+a.what,'','— 系統快照 —',snapshot()].join('\n');
+  document.getElementById('doneText').textContent=text;
+  document.getElementById('doneNote').textContent='已建立工單 '+id+'。正式版會自動推送到工程師的 LINE 群組或 Email；示範版可以先複製下面的內容貼過去。';
+  document.getElementById('formView').hidden=true; document.getElementById('doneView').hidden=false;
+  log(a.c==='alarm'?'alarm':'warn','新回報 '+id+'：'+module+'・'+impact);
+  tab='status'; document.getElementById('detail').dataset.view=''; selected='ops'; renderAll(); document.getElementById('copyBtn').focus();
+});
+document.getElementById('copyBtn').addEventListener('click',()=>{
+  const btn=document.getElementById('copyBtn'), txt=document.getElementById('doneText').textContent;
+  const sel=()=>{ const r=document.createRange(); r.selectNodeContents(document.getElementById('doneText')); const s=getSelection(); s.removeAllRanges(); s.addRange(r); btn.textContent='已選取，請按複製'; };
+  try{ navigator.clipboard.writeText(txt).then(()=>{ btn.textContent='已複製'; },sel); }catch(e){ sel(); }
+});
+
+/* ---------- 鏡頭聚焦 ---------- */
+let camAnim=null; const HOME=new THREE.Vector3(0,0,0);
+function moveCam(to,z1){ const off=cam.position.clone().sub(controls.target);
+  camAnim={from:controls.target.clone(),to,off,z0:cam.zoom,z1,t0:performance.now()-(reduce?700:0)}; }
+function focusOn(id){ if(mode!=='island') return; const s=byId(id); if(!s) return;
+  moveCam(new THREE.Vector3(s.pos[0],1.0*s.sc,s.pos[2]),s.id==='sales'?2.2:2.5); document.getElementById('overviewBtn').hidden=false; }
+document.getElementById('overviewBtn').onclick=()=>{ moveCam(HOME.clone(),1); document.getElementById('overviewBtn').hidden=true; };
+
+/* ---------- ERP 側邊選單（對應 pagePermissions）---------- */
+const MENU=[['營收',[['monitor','監控分析中心',null],['dashboard','數據總覽','hub'],['sales','營收登記','sales:form']]],
+  ['管理',[['items','進銷項目',null],['employees','人員管理',null],['shifts','排班紀錄','staff']]],
+  ['報表',[['reports-monthly','月報表','hub'],['reports-yearly','年報表',null]]],
+  ['資產',[['inventory','庫存紀錄','stock'],['petty-cash','零用支出',null],['fixed-expenses','固定支出',null]]],
+  ['活動',[['events','活動管理','event']]],
+  ['服務',[['lighting','點燈紀錄','lamp:form'],['sops','SOP',null],['customer-service-records','客服紀錄','service']]],
+  ['系統',[['permissions','權限設定','ops']]]];
+const STAFF_KEYS=['monitor','sales','inventory','events','lighting','sops','customer-service-records'];
+function renderMenu(){
+  const cur=selected+(tab!=='status'?':'+tab:'');
+  document.getElementById('menu').innerHTML=MENU.map(([g,items])=>{ const vis=items.filter(([k])=>role==='admin'||STAFF_KEYS.includes(k)); if(!vis.length) return '';
+    return '<li class="grp">'+g+'</li>'+vis.map(([k,l,t])=>{ const on=k==='monitor'?false:(t&&(t===cur||(t===selected&&tab==='status')));
+      return '<li><button type="button" data-k="'+k+'"'+(t||k==='monitor'?'':' disabled title="示範未包含此頁"')+' aria-current="'+(k==='monitor'?(!MENU.flatMap(x=>x[1]).some(i=>i[2]&&(i[2]===cur||(i[2]===selected&&tab==='status')))):on)+'">'+l+(t?'':'')+'</button></li>'; }).join(''); }).join('');
+  document.querySelectorAll('#menu button[data-k]').forEach(b=>b.onclick=()=>{ const it=MENU.flatMap(x=>x[1]).find(i=>i[0]===b.dataset.k); if(!it) return;
+    if(it[0]==='monitor'){ select('hub'); return; } const [id,t]=it[2].split(':'); select(id,t||'status'); });
+}
+
+/* ---------- 儀表板模式 & 身分 ---------- */
+const STNAME={run:'正常',warn:'注意',alarm:'需處理',hub:'彙總',stale:'資料過期'};
+function renderDash(){
+  const g=document.getElementById('dgrid');
+  g.innerHTML=ISL.filter(s=>visible(s.id)).map(s=>{ const e=s.ev;
+    return '<button type="button" class="dcard s-'+e.st+(s.id===selected?' sel':'')+'" data-id="'+s.id+'">'+
+      '<div class="dh"><span class="dot s-'+e.st+'"></span><span>'+s.name+'</span><span class="pill s-'+e.st+'">'+STNAME[e.st]+'</span></div>'+
+      '<div class="dm">'+mainMetric(s.id)+'</div><div class="dr">'+(e.st==='stale'?'連線中斷，顯示最後一次資料':e.reason||(s.id==='ops'?(e.st==='run'?'各項服務正常':'有服務需要注意'):'一切正常'))+'</div></button>'; }).join('');
+  g.querySelectorAll('.dcard').forEach(b=>b.onclick=()=>select(b.dataset.id));
+}
+function setMode(m){ mode=m; document.querySelectorAll('.seg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.mode===m));
+  const isDash=m==='dash'; document.getElementById('dash').hidden=!isDash; renderer.domElement.hidden=isDash; labelsEl.hidden=isDash; document.getElementById('hint').hidden=isDash;
+  try{ localStorage.setItem('unv-island-mode',m); }catch(e){}
+  renderAll(); }
+function applyRole(){
+  ISL.forEach(s=>{ const v=visible(s.id); s.group.visible=v; s.tag.hidden=!v; if(bridges[s.id]) bridges[s.id].g.visible=v&&visible('hub'); });
+  document.getElementById('kpiSec').hidden=role==='staff'; document.getElementById('sysChip').hidden=role==='staff';
+  if(!visible(selected)){ selected=ISL.find(s=>visible(s.id)).id; tab='status'; document.getElementById('detail').dataset.view=''; }
+  renderAll(); }
+document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
+document.getElementById('roleSel').onchange=e=>{ role=e.target.value; log('run','切換為'+(role==='staff'?'櫃台人員':'管理者')+'視角'); applyRole(); };
+
+document.getElementById('fabSale').onclick=()=>{ focusOn('sales'); select('sales','form'); setTimeout(()=>{ const el=document.querySelector('#sLines select'); if(el) el.focus(); },60); };
+const netBtn=document.getElementById('netBtn');
+netBtn.addEventListener('click',()=>{ offline=!offline; netBtn.setAttribute('aria-pressed',offline); netBtn.textContent=offline?'恢復連線':'模擬 API 斷線';
+  if(offline){ log('alarm','前端連續取不到 /api/health 回應'); select('ops'); } else { lastOk=Date.now(); log('run','API 連線恢復，重新同步資料'); renderAll(); } });
+document.getElementById('sysChip').addEventListener('click',()=>select('ops'));
+setInterval(()=>{ if(!offline) return; if(isStale()!==staleShown) renderAll(); else if(staleShown) updateBanner(); },1000);
+if(IS_MOBILE){ document.body.classList.add('mobile'); const fb=document.getElementById('fabSale'); document.body.appendChild(fb);
+  const n=document.createElement('div'); n.className='mnote'; n.textContent='手機版顯示原始數據總覽，3D 資訊島請用電腦開啟。'; document.querySelector('.panel').prepend(n); }
+window.__toHub=()=>select('hub');
+renderAll(); frame();
+{ const h=location.hash.slice(1); if(byId(h)&&visible(h)) setTimeout(()=>select(h),300); }
+try{ if(!IS_MOBILE&&localStorage.getItem('unv-island-mode')==='dash') setMode('dash'); }catch(e){}
+setInterval(tick,2600);
+const ck=()=>{ document.getElementById('clock').textContent=new Date().toLocaleString('zh-TW',{month:'numeric',day:'numeric',weekday:'short',hour:'2-digit',minute:'2-digit',hour12:false}); }; ck(); setInterval(ck,10000);
+})();
+</script>

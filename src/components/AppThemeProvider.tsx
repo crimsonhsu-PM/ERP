@@ -62,17 +62,16 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
           components: {
             Layout: {
               bodyBg: darkMode ? "#101820" : "#f5f7fa",
-              siderBg: darkMode ? "#111d27" : "#eaf6ff",
+              siderBg: "#172e3c",
               headerBg: darkMode ? "#17232d" : "#ffffff"
             },
             Menu: {
-              itemBg: darkMode ? "#111d27" : "#eaf6ff",
-              itemColor: darkMode ? "#a9bfca" : "#25566f",
-              itemHoverBg: darkMode ? "#1a3443" : "#d8efff",
-              itemHoverColor: darkMode ? "#e0f7ff" : "#0b6382",
-              itemSelectedBg: darkMode ? "#1d5269" : "#c8e8ff",
-              itemSelectedColor: darkMode ? "#f3fbff" : "#075c78",
-              subMenuItemBg: darkMode ? "#111d27" : "#eaf6ff"
+              darkItemBg: "#172e3c",
+              darkItemColor: "#a4bdc5",
+              darkItemHoverBg: "#224354",
+              darkItemSelectedBg: "#294d60",
+              darkItemSelectedColor: "#e9faff",
+              darkSubMenuItemBg: "#172e3c"
             }
           }
         }}

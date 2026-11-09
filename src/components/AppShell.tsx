@@ -8,6 +8,8 @@ import {
   FileTextOutlined,
   FireOutlined,
   LogoutOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
   MoonOutlined,
   SettingOutlined,
   ShopOutlined,
@@ -18,7 +20,7 @@ import {
 } from "@ant-design/icons";
 import { Button, Layout, Menu, Space, Typography } from "antd";
 import { usePathname, useRouter } from "next/navigation";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { pagePermissions } from "@/lib/permissions";
 import { useAppTheme } from "@/components/AppThemeProvider";
 
@@ -109,6 +111,32 @@ export function AppShell({
       })
     }))
     .filter((group) => group.links.length > 0);
+  const selectedKey = pathname === "/" ? "/dashboard" : pathname;
+  const selectedGroup = allowedGroups.find((group) => group.links.some((link) => link.href === selectedKey))?.label;
+  const [collapsed, setCollapsed] = useState(false);
+  const [sidebarReady, setSidebarReady] = useState(false);
+  const [openKeys, setOpenKeys] = useState<string[]>(() => ["營收", "管理", ...(selectedGroup ? [selectedGroup] : [])]);
+
+  useEffect(() => {
+    if (window.localStorage.getItem("unv-erp-sidebar-collapsed") === "true") {
+      setCollapsed(true);
+      setOpenKeys([]);
+    }
+    setSidebarReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (sidebarReady && selectedGroup && !collapsed) {
+      setOpenKeys((current) => current.includes(selectedGroup) ? current : [...current, selectedGroup]);
+    }
+  }, [sidebarReady, selectedGroup, collapsed]);
+
+  function toggleSidebar() {
+    const nextCollapsed = !collapsed;
+    setCollapsed(nextCollapsed);
+    setOpenKeys(nextCollapsed ? [] : ["營收", "管理", ...(selectedGroup ? [selectedGroup] : [])]);
+    window.localStorage.setItem("unv-erp-sidebar-collapsed", String(nextCollapsed));
+  }
 
   const menuItems = allowedGroups.map((group) => ({
     key: group.label,
@@ -132,6 +160,14 @@ export function AppShell({
       label: link.label
     }))
   }));
+  const primaryLabels = ["營收", "管理"];
+  const secondaryLabels = allowedGroups.map((group) => group.label).filter((label) => !primaryLabels.includes(label));
+  const primaryMenuItems = menuItems.filter((item) => primaryLabels.includes(item.key));
+  const secondaryMenuItems = menuItems.filter((item) => secondaryLabels.includes(item.key));
+
+  function handleOpenChange(keys: string[], sectionLabels: string[]) {
+    setOpenKeys((current) => [...current.filter((key) => !sectionLabels.includes(key)), ...keys]);
+  }
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -141,16 +177,63 @@ export function AppShell({
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
-      <Layout.Sider width={260} breakpoint="lg" collapsedWidth={0}>
-        <div className="erp-logo">UNV.PLAN ERP</div>
-        <Menu
-          theme={mode === "dark" ? "dark" : "light"}
-          mode="inline"
-          selectedKeys={[pathname]}
-          defaultOpenKeys={allowedGroups.map((group) => group.label)}
-          items={menuItems}
-          onClick={(event) => router.push(event.key)}
-        />
+      <Layout.Sider
+        className="erp-sidebar"
+        width={245}
+        collapsedWidth={66}
+        collapsed={collapsed}
+        collapsible
+        trigger={null}
+        breakpoint="lg"
+        onBreakpoint={(broken) => {
+          if (broken) {
+            setCollapsed(true);
+            setOpenKeys([]);
+          }
+        }}
+      >
+        <div className="erp-sidebar-brand">
+          <span className="erp-brand-mark"><ShopOutlined /></span>
+          {!collapsed && <span className="erp-brand-copy"><strong>門市管理</strong><small>ERP 工作台</small></span>}
+          <Button
+            className="erp-sidebar-toggle"
+            type="text"
+            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+            onClick={toggleSidebar}
+            aria-label={collapsed ? "展開選單" : "收合選單"}
+            title={collapsed ? "展開選單" : "收合選單"}
+          />
+        </div>
+        <div className="erp-sidebar-navigation">
+          {!collapsed && <div className="erp-sidebar-section">主要功能</div>}
+          <Menu
+            className="erp-sidebar-menu"
+            theme="dark"
+            mode="inline"
+            inlineCollapsed={collapsed}
+            selectedKeys={[selectedKey]}
+            openKeys={openKeys.filter((key) => primaryLabels.includes(key))}
+            onOpenChange={(keys) => handleOpenChange(keys, primaryLabels)}
+            items={primaryMenuItems}
+            onClick={(event) => router.push(event.key)}
+          />
+          {!collapsed && secondaryMenuItems.length > 0 && <div className="erp-sidebar-section erp-sidebar-section-secondary">其他功能</div>}
+          <Menu
+            className="erp-sidebar-menu"
+            theme="dark"
+            mode="inline"
+            inlineCollapsed={collapsed}
+            selectedKeys={[selectedKey]}
+            openKeys={openKeys.filter((key) => secondaryLabels.includes(key))}
+            onOpenChange={(keys) => handleOpenChange(keys, secondaryLabels)}
+            items={secondaryMenuItems}
+            onClick={(event) => router.push(event.key)}
+          />
+        </div>
+        <div className="erp-sidebar-profile" title={user.name || user.email}>
+          <span className="erp-profile-icon"><UserOutlined /></span>
+          {!collapsed && <span className="erp-profile-copy"><strong>{user.name || user.email}</strong><small>ERP 工作台</small></span>}
+        </div>
       </Layout.Sider>
       <Layout>
         <Layout.Header className="erp-header">
